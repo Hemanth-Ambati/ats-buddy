@@ -1,0 +1,5 @@
+{
+  "name": "ATS Buddy: AI Resume Optimizer",
+  "description": "An AI-powered concierge agent that analyzes your resume against a job description, provides an ATS match score, and generates an optimized, ATS-friendly version to help you land your next interview.",
+  "requestFramePermissions": []
+}
