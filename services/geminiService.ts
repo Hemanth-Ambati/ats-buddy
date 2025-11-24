@@ -23,11 +23,25 @@ const API_KEY =
   process.env.GEMINI_API_KEY ||
   process.env.API_KEY;
 
-if (!API_KEY) {
-  throw new Error("GEMINI_API_KEY / API_KEY environment variable not set");
+let ai: GoogleGenAI;
+
+try {
+  if (API_KEY) {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  }
+} catch (e) {
+  console.error("Failed to initialize Gemini client", e);
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const getAiClient = () => {
+  if (!ai) {
+    if (!API_KEY) {
+      throw new Error("GEMINI_API_KEY environment variable not set. Please configure it in your Vercel project settings.");
+    }
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  }
+  return ai;
+};
 
 // Mock mode for development/testing without consuming API quota
 const MOCK_ENABLED =
@@ -59,7 +73,7 @@ async function generateStructured<T>(prompt: string, schema: Schema, temperature
     return mockResponse;
   }
 
-  const response = await ai.models.generateContent({
+  const response = await getAiClient().models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
     config: {
@@ -162,7 +176,7 @@ IMPORTANT INSTRUCTIONS:
   const prompt = `${systemPrefix}\n\nYou are an expert resume assistant. Continue the conversation below and provide a helpful, concise reply that uses the analysis context above when relevant.\n\n${conversation}\n\nASSISTANT:`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAiClient().models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: { temperature: 0.4 }, // Higher temperature for more creative/helpful suggestions
