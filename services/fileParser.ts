@@ -2,18 +2,6 @@
  * Client-side file parsing utilities for PDF and DOCX resumes.
  * Uses `pdfjs-dist` for PDFs and `mammoth` for DOCX.
  */
-import * as mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
-// import the worker entry so bundlers (Vite) include a worker whose version matches the
-// installed pdfjs-dist package. This avoids API/Worker version mismatch errors.
-// The import below resolves to a worker script path handled by the bundler.
-// Import the worker entry. Different bundlers expose this import differently
-// (string URL as default export, or a module object). Import as a namespace
-// and handle both shapes below.
-// For Vite: import the worker file as a URL so the bundler provides a string path.
-// This avoids module shape issues across bundlers and ensures we get a usable URL.
-// @ts-ignore
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.js?url';
 
 export async function parseFile(file: File): Promise<string> {
   const name = file.name.toLowerCase();
@@ -34,6 +22,7 @@ export async function parseFile(file: File): Promise<string> {
 }
 
 async function parseDocx(file: File): Promise<string> {
+  const mammoth = await import('mammoth');
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
   // mammoth returns a value string with plain text
@@ -41,20 +30,19 @@ async function parseDocx(file: File): Promise<string> {
 }
 
 async function parsePdf(file: File): Promise<string> {
-  // Set worker to a CDN-hosted worker. This is a pragmatic approach for Vite dev/demo.
-  // If you prefer bundling the worker locally, update workerSrc accordingly.
-  // Use the bundled worker so the API and worker versions match. Cast to any to avoid
-  // typing issues with the imported worker value.
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf');
+
+  // Ensure workerSrc points to a bundled worker so we don't rely on CDN fetches during runtime.
   try {
-    if (typeof pdfWorkerUrl === 'string' && pdfWorkerUrl) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl as any;
-    } else {
-      console.warn('pdf.worker URL import did not return a string; leaving workerSrc unset to let pdf.js auto-detect.');
+    if (typeof window !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+        import.meta.url
+      ).href;
     }
   } catch (e) {
-    console.warn('Could not set pdfjs workerSrc from pdfWorkerUrl import, falling back.', e);
+    console.warn('Could not set pdfjs workerSrc from bundled worker, falling back to auto-detect.', e);
   }
-
   const uint8 = new Uint8Array(await file.arrayBuffer());
   const loadingTask = pdfjsLib.getDocument({ data: uint8 });
   const pdf = await loadingTask.promise;

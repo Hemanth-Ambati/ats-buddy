@@ -1,136 +1,171 @@
+/**
+ * Gemini AI Service Integration
+ * 
+ * This module provides the interface to Google's Gemini 2.5 Flash model for:
+ * 1. Structured generation - Agent outputs with validated JSON schemas
+ * 2. Conversational chat - Interactive resume improvement suggestions
+ * 
+ * Design Decisions:
+ * - Uses Gemini 2.5 Flash for optimal balance of speed, quality, and cost
+ * - Structured generation ensures type-safe, parseable agent outputs
+ * - Low temperature (0.2) for agents ensures consistent, factual responses
+ * - Higher temperature (0.4) for chat enables more creative suggestions
+ * - Mock mode allows development/testing without API calls
+ */
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { AnalysisResult } from '../types';
+import type { AnalysisResult, ChatMessage } from '../types';
+import { log } from './logger';
 
-const API_KEY = process.env.API_KEY;
+// API key resolution: Vite env vars take precedence, fallback to Node env
+const API_KEY =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+  process.env.GEMINI_API_KEY ||
+  process.env.API_KEY;
 
 if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+  throw new Error("GEMINI_API_KEY / API_KEY environment variable not set");
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const analysisSchema = {
-  type: Type.OBJECT,
-  properties: {
-    score: {
-      type: Type.NUMBER,
-      description: "The ATS match score from 0 to 100, as an integer.",
+// Mock mode for development/testing without consuming API quota
+const MOCK_ENABLED =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_MOCK === 'true') ||
+  process.env.GEMINI_MOCK === 'true';
+
+type Schema = any; // Gemini schema type (simplified for brevity)
+
+/**
+ * Generates structured JSON output from Gemini using a defined schema.
+ * 
+ * This is the core function used by all agents to ensure type-safe, validated outputs.
+ * The schema parameter enforces response structure, preventing hallucinated fields.
+ * 
+ * @param prompt - The instruction/context for the LLM
+ * @param schema - JSON schema defining expected response structure
+ * @param temperature - Randomness (0.0 = deterministic, 1.0 = creative). Agents use 0.2 for consistency.
+ * @param mockResponse - Optional mock data for testing without API calls
+ * @returns Parsed, type-safe response matching the schema
+ * 
+ * Design Decision: Low temperature for agents
+ * - Agents need consistent, factual outputs (not creative writing)
+ * - Temperature 0.2 reduces hallucination and improves reliability
+ * - Chat uses higher temperature (0.4) for more helpful suggestions
+ */
+async function generateStructured<T>(prompt: string, schema: Schema, temperature = 0.2, mockResponse?: T): Promise<T> {
+  log({ level: 'debug', message: 'Gemini request', extra: { temperature } });
+  if (MOCK_ENABLED && mockResponse) {
+    return mockResponse;
+  }
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json", // Force JSON output
+      responseSchema: schema, // Validate against schema
+      temperature,
     },
-    summary: {
-      type: Type.STRING,
-      description: "A brief, 2-3 sentence summary explaining the score and key observations.",
-    },
-    keywordAnalysis: {
-      type: Type.OBJECT,
-      properties: {
-        matchingKeywords: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: "A list of important keywords from the job description that were found in the resume.",
-        },
-        missingKeywords: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: "A list of important keywords from the job description that were NOT found in the resume.",
-        },
-        suggestions: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING },
-          description: "A list of 3-5 actionable suggestions for improving the resume.",
-        },
-      },
-      required: ["matchingKeywords", "missingKeywords", "suggestions"],
-    },
-    optimizedResume: {
-      type: Type.STRING,
-      description: "The full, optimized resume text in Markdown format. This version should subtly incorporate missing keywords and improve phrasing for ATS compatibility, without fabricating experience.",
-    },
-  },
-  required: ["score", "summary", "keywordAnalysis", "optimizedResume"],
-};
+  });
 
-
-export async function analyzeResumeAndJD(resume: string, jobDescription: string): Promise<AnalysisResult> {
-  const prompt = `
-    You are an expert ATS (Applicant Tracking System) analysis system composed of multiple specialized agents. Your goal is to help a user optimize their resume for a specific job description. Please perform the following steps and return the result in the requested JSON format.
-
-    **USER INPUTS:**
-
-    ---
-    **Resume:**
-    ${resume}
-    ---
-    **Job Description:**
-    ${jobDescription}
-    ---
-
-    **AGENT TASKS:**
-
-    1.  **JD Analysis Agent:** Meticulously analyze the provided Job Description. Extract the most critical keywords, skills (hard and soft), and qualifications. Pay close attention to technologies, job titles, and responsibilities mentioned.
-
-    2.  **Resume Match & Scoring Agent:** Compare the user's Resume against the extracted requirements from the JD. Identify which keywords are present and which are missing. Based on this comparison, calculate an ATS match score from 0 to 100.
-
-    3.  **Optimization Agent:** Rewrite the user's resume to be more ATS-friendly and better aligned with the job description. Subtly incorporate the missing keywords where they logically fit, without fabricating experience. Improve formatting for clarity and parsability. Ensure the output is in Markdown format.
-
-    Please provide your complete analysis in the specified JSON structure.
-  `;
-
+  const jsonText = response.text.trim();
   try {
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: analysisSchema,
-            temperature: 0.2,
-        },
-    });
-
-    const jsonText = response.text.trim();
-    const result = JSON.parse(jsonText);
-    
-    // Ensure score is an integer
-    result.score = Math.round(result.score);
-    
-    return result as AnalysisResult;
-
-  } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    throw new Error("Failed to get analysis from Gemini API. Please check the console for more details.");
+    return JSON.parse(jsonText) as T;
+  } catch (err) {
+    log({ level: 'error', message: 'Failed to parse Gemini response', error: err, extra: { jsonText } });
+    throw err;
   }
 }
 
+export { generateStructured, Type };
+
+/**
+ * Interactive chat interface with context-aware resume assistance.
+ * 
+ * Provides conversational AI that understands the full analysis context:
+ * - Original resume and its ATS score
+ * - Optimized resume generated by the pipeline
+ * - Job description requirements
+ * - Keyword gaps and suggestions
+ * 
+ * @param messages - Conversation history (user + assistant messages)
+ * @param analysisContext - Complete analysis result for context injection
+ * @param currentResumeText - User's current resume (may differ from original if manually edited)
+ * @param jobDescriptionText - Target job description
+ * @returns AI-generated response with resume improvement suggestions
+ * 
+ * Design Decision: Comprehensive context injection
+ * - Chat receives BOTH original and optimized resumes for comparison
+ * - Explicit instructions prevent confusion between original vs optimized scores
+ * - Special "UPDATED_RESUME:" marker enables AI to return modified resume text
+ * - Detailed scoring criteria (40% keywords, 30% skills, 20% experience, 10% format)
+ *   ensures consistent evaluation methodology
+ */
 export async function chatWithGemini(
-  messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
+  messages: ChatMessage[],
   analysisContext: AnalysisResult | null = null,
   currentResumeText: string = '',
   jobDescriptionText: string = ''
 ): Promise<string> {
-  // If an analysis context is provided, prepend it as a SYSTEM message so the
-  // assistant always answers with that context in mind.
   let systemPrefix = '';
 
   if (analysisContext) {
-    const { score, summary, keywordAnalysis, optimizedResume } = analysisContext;
-    const matching = keywordAnalysis.matchingKeywords.join(', ') || 'None';
-    const missing = keywordAnalysis.missingKeywords.join(', ') || 'None';
-    const suggestions = keywordAnalysis.suggestions.join('\n- ') || 'None';
+    const summary = analysisContext.scoring.output?.alignmentNotes ?? 'Not available';
+    const overall = analysisContext.scoring.output?.overall;
+    const matching = analysisContext.keywordAnalysis.output?.matchingKeywords?.join(', ') || 'None';
+    const missing = analysisContext.keywordAnalysis.output?.missingKeywords?.join(', ') || 'None';
+    const suggestions = analysisContext.keywordAnalysis.output?.suggestions?.join('\n- ') || 'None';
+    const optimized = analysisContext.optimiser.output?.markdown || '';
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    systemPrefix = `CONTEXT ANALYSIS:\n- ATS Score: ${score}\n- Summary: ${summary}\n- Matching Keywords: ${matching}\n- Missing Keywords: ${missing}\n- Suggestions:\n- ${suggestions}\n\nOptimized Resume (excerpt):\n${optimizedResume.slice(0, 1200)}\n\nCurrent Resume Text:\n${currentResumeText}\n\nJob Description:\n${jobDescriptionText}\n\nImportant: When answering, always consider the above analysis, resume, and job description. You can compare the optimized resume against the job description, analyze keyword matches, suggest improvements, or provide detailed feedback. If the user asks you to modify, update, or change their resume, respond with your explanation followed by "UPDATED_RESUME:" and then the complete updated resume text. If a suggestion requires clarification, ask a focused follow-up question.`;
+    // Context injection: Provide full analysis context to enable intelligent responses
+    systemPrefix = `CURRENT DATE: ${currentDate}
+
+CONTEXT ANALYSIS:
+- Original Resume ATS Score: ${overall ?? 'N/A'}/100
+- Alignment Summary: ${summary}
+- Matching Keywords from Original: ${matching}
+- Missing Keywords from Original: ${missing}
+- Improvement Suggestions:
+- ${suggestions}
+
+OPTIMIZED RESUME (AI-Generated Improved Version):
+${optimized}
+
+ORIGINAL RESUME (User's Current Version):
+${currentResumeText}
+
+JOB DESCRIPTION:
+${jobDescriptionText}
+
+IMPORTANT INSTRUCTIONS:
+1. The ATS score of ${overall ?? 'N/A'}/100 applies ONLY to the ORIGINAL resume.
+2. The OPTIMIZED resume has been rewritten to address the missing keywords and gaps.
+3. When asked to compare, score, or analyze the optimized resume against the job description, you MUST:
+   a) Perform a fresh ATS analysis of the OPTIMIZED resume against the job description
+   b) Count how many keywords from the job description appear in the optimized resume
+   c) Evaluate alignment with job requirements, skills, and experience
+   d) Provide a NEW ATS score (0-100) for the optimized resume with detailed justification
+   e) Compare this new score to the original score of ${overall ?? 'N/A'}/100
+   f) Explain specifically which improvements (added keywords, better alignment, etc.) led to the score change
+4. Your scoring should follow these criteria:
+   - Keyword match rate (40%): How many JD keywords appear in the resume
+   - Skills alignment (30%): How well skills match the requirements
+   - Experience relevance (20%): How relevant is the experience to the role
+   - Format & clarity (10%): ATS-friendly formatting and clear presentation
+5. If the user asks you to modify their resume, respond with your explanation followed by "UPDATED_RESUME:" and then the complete updated resume text.
+6. Always be specific and reference actual content from the resumes and job description.`;
   }
 
-  // Build conversation text from the message history
   const conversation = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
-
-  // Combine systemPrefix (if any) with the conversation and instruct the assistant
   const prompt = `${systemPrefix}\n\nYou are an expert resume assistant. Continue the conversation below and provide a helpful, concise reply that uses the analysis context above when relevant.\n\n${conversation}\n\nASSISTANT:`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { temperature: 0.4 },
+      config: { temperature: 0.4 }, // Higher temperature for more creative/helpful suggestions
     });
 
     return response.text.trim();

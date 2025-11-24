@@ -1,18 +1,39 @@
-/* Minimal base styles for the app */
-:root{
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
   color-scheme: light;
 }
-html,body,#root{
-  height:100%;
-}
-body{
-  margin:0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  background-color: #f0f4f8;
-  color: #0f172a;
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
-/* Optional: make body text readable if Tailwind isn't available */
-.container{max-width:1024px;margin:0 auto;padding:1rem}
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-500;
+}
