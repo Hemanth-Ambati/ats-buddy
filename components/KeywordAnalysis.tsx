@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { KeywordAnalysis as KeywordAnalysisType } from '../types';
 
 interface KeywordAnalysisProps {
-  analysis: KeywordAnalysisType;
+  analysis?: KeywordAnalysisType;
 }
 
 const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -12,7 +12,7 @@ const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 const XIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z" clipRule="evenodd" />
   </svg>
 );
@@ -25,41 +25,46 @@ const LightbulbIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 
 
 export const KeywordAnalysis: React.FC<KeywordAnalysisProps> = ({ analysis }) => {
+  const matching = analysis?.matchingKeywords ?? [];
+  const missing = analysis?.missingKeywords ?? [];
+  const suggestions = analysis?.suggestions ?? [];
+
   return (
     <div>
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">Keyword Analysis</h3>
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Keyword Analysis</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div>
-          <h4 className="font-medium text-slate-600 mb-3 flex items-center gap-2">
-            <CheckIcon className="h-6 w-6 text-green-500"/> Matching Keywords
+          <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+            <CheckIcon className="h-6 w-6 text-green-500" /> Matching Keywords
           </h4>
           <div className="flex flex-wrap gap-2">
-            {analysis.matchingKeywords.map((kw, i) => (
-              <span key={`match-${i}`} className="bg-green-800 text-green-300 text-sm font-medium px-2.5 py-1 rounded-full">{kw}</span>
+            {matching.map((kw, i) => (
+              <span key={`match-${i}`} className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800">{kw}</span>
             ))}
-             {analysis.matchingKeywords.length === 0 && <p className="text-slate-300 text-sm">No strong keyword matches found.</p>}
+            {matching.length === 0 && <p className="text-slate-500 dark:text-slate-400 text-sm">No strong keyword matches found.</p>}
           </div>
         </div>
         <div>
-          <h4 className="font-medium text-slate-600 mb-3 flex items-center gap-2">
-            <XIcon className="h-6 w-6 text-red-500"/> Missing Keywords
+          <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+            <XIcon className="h-6 w-6 text-rose-500" /> Missing Keywords
           </h4>
           <div className="flex flex-wrap gap-2">
-            {analysis.missingKeywords.map((kw, i) => (
-              <span key={`miss-${i}`} className="bg-rose-800 text-rose-300 text-sm font-medium px-2.5 py-1 rounded-full">{kw}</span>
+            {missing.map((kw, i) => (
+              <span key={`miss-${i}`} className="bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300 text-sm font-medium px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-800">{kw}</span>
             ))}
-            {analysis.missingKeywords.length === 0 && <p className="text-slate-300 text-sm">Great job! No major keywords seem to be missing.</p>}
+            {missing.length === 0 && <p className="text-slate-500 dark:text-slate-400 text-sm">Great job! No major keywords seem to be missing.</p>}
           </div>
         </div>
       </div>
-       <div>
-        <h4 className="font-medium text-slate-300 mb-3 flex items-center gap-2">
-            <LightbulbIcon className="h-6 w-6 text-yellow-400"/> AI Suggestions
+      <div>
+        <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+          <LightbulbIcon className="h-6 w-6 text-amber-500" /> AI Suggestions
         </h4>
-        <ul className="space-y-2 list-disc list-inside text-slate-300">
-            {analysis.suggestions.map((suggestion, i) => (
-                <li key={`sug-${i}`}>{suggestion}</li>
-            ))}
+        <ul className="space-y-2 list-disc list-inside text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+          {suggestions.map((suggestion, i) => (
+            <li key={`sug-${i}`}>{suggestion}</li>
+          ))}
+          {suggestions.length === 0 && <li className="text-slate-400 dark:text-slate-500">Run an analysis to see targeted keyword suggestions.</li>}
         </ul>
       </div>
     </div>
