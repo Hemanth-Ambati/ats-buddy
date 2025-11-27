@@ -115,3 +115,99 @@ export function resetSession(): SessionState {
   log({ level: 'info', message: 'Session reset', sessionId: session.sessionId, correlationId: session.correlationId });
   return session;
 }
+
+// History Management (Fallback for when Firestore is unavailable)
+const HISTORY_KEY = 'ats-buddy-history';
+
+interface SessionHistoryMap {
+  [sessionId: string]: SessionState;
+}
+
+function getHistory(): SessionHistoryMap {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.warn('Failed to parse session history', err);
+    return {};
+  }
+}
+
+function saveHistory(history: SessionHistoryMap) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (err) {
+    console.warn('Failed to save session history', err);
+  }
+}
+
+export function saveSessionToHistory(session: SessionState) {
+  const history = getHistory();
+
+  // Check if session has meaningful content
+  const hasContent = (session.resumeText && session.resumeText.trim().length > 0) ||
+    (session.jobDescriptionText && session.jobDescriptionText.trim().length > 0) ||
+    (session.chatHistory && session.chatHistory.length > 0);
+
+  if (hasContent) {
+    // Update title if generic
+    const title = session.title || (session.analysis?.jdAnalysis?.output?.title) || 'Untitled Session';
+
+    history[session.sessionId] = {
+      ...session,
+      title,
+      updatedAt: new Date().toISOString()
+    };
+  } else {
+    // Remove from history if it exists (cleanup empty sessions)
+    if (history[session.sessionId]) {
+      delete history[session.sessionId];
+    }
+  }
+
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (err) {
+    console.warn('Failed to save session to history (quota exceeded?)', err);
+  }
+}
+
+export function getLocalSessions(): { sessionId: string; title: string; updatedAt: string }[] {
+  const history = getHistory();
+  return Object.values(history)
+    .filter(session => {
+      // Filter out empty sessions
+      return (session.resumeText && session.resumeText.trim().length > 0) ||
+        (session.jobDescriptionText && session.jobDescriptionText.trim().length > 0) ||
+        (session.chatHistory && session.chatHistory.length > 0);
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .map(session => ({
+      sessionId: session.sessionId,
+      title: session.title || 'Untitled Session',
+      updatedAt: session.updatedAt || new Date().toISOString()
+    }));
+}
+
+export function loadLocalSession(sessionId: string): SessionState | null {
+  const history = getHistory();
+  return history[sessionId] || null;
+}
+
+export function renameSessionInHistory(sessionId: string, newTitle: string): void {
+  const history = getHistory();
+  if (history[sessionId]) {
+    history[sessionId].title = newTitle;
+    history[sessionId].updatedAt = new Date().toISOString();
+    saveHistory(history);
+  }
+}
+
+export function deleteSessionFromHistory(sessionId: string): void {
+  const history = getHistory();
+  if (history[sessionId]) {
+    delete history[sessionId];
+    saveHistory(history);
+  }
+}

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Clock } from 'lucide-react';
 import type { AnalysisResult, AgentStage } from '../types';
 import { ScoreCard } from './ScoreCard';
 import { KeywordAnalysis } from './KeywordAnalysis';
@@ -48,22 +49,22 @@ const StageBadge: React.FC<{ stage: AgentStage<unknown> }> = ({ stage }) => {
       : stage.status === 'failed' ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
 
-  const duration = stage.startedAt && stage.finishedAt ? `${Math.max(1, Math.round((stage.finishedAt - stage.startedAt)))}ms` : '';
-
   return (
-    <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${color}`}>
+    <div className={`flex items-center justify-center px-3 py-2 rounded-lg border ${color}`}>
       <span className="text-sm font-semibold">{labelMap[stage.name]}</span>
-      <span className="text-xs font-medium">{stage.status.toUpperCase()} {duration && `• ${duration}`}</span>
     </div>
   );
 };
 
 export const ResultsSection: React.FC<ResultsSectionProps> = ({ result, isLoading, error }) => {
-  const stageList = result ? [result.jdAnalysis, result.keywordAnalysis, result.scoring, result.optimiser, result.formatter] : [];
+  // Only show relevant stages (hide dummy JD Analysis and Formatter)
+  const stageList = result ? [result.keywordAnalysis, result.scoring, result.optimiser] : [];
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3 mb-6">AI Analysis</h2>
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3 mb-6">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">AI Analysis</h2>
+      </div>
 
       <div className="min-h-[500px] space-y-6">
         {isLoading && !result && <LoadingSkeleton />}
@@ -71,7 +72,7 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({ result, isLoadin
         {!isLoading && !error && !result && <Placeholder />}
         {result && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {stageList.map((stage) => (
                 <StageBadge key={stage.name} stage={stage} />
               ))}

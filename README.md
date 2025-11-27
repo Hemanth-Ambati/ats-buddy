@@ -12,12 +12,57 @@ This app helps you align a resume to a job description using a lightweight multi
 - **Session + Memory:** Sessions carry resume/JD text, agent outputs, and chat history; persisted to `localStorage`.
 - **Observability:** Structured logs with correlation IDs; a UI debug panel surfaces recent entries for demos.
 
-## Setup
-1) Install dependencies: `npm install`
-2) Copy `.env.local` and set one of:
-   - `GEMINI_API_KEY=` (or `VITE_GEMINI_API_KEY=`) your Gemini key
-   - Optional: `VITE_GEMINI_MOCK=true` to run with mocked agent responses (no API calls)
-3) Run the dev server: `npm run dev`
+## 🔐 Authentication Setup (Firebase)
+
+This project uses Firebase for authentication and data persistence.
+
+1.  **Create a Firebase Project:**
+    *   Go to [Firebase Console](https://console.firebase.google.com/)
+    *   Create a new project
+    *   Enable **Authentication** (Email/Password provider)
+    *   Enable **Firestore Database** (Start in Test Mode)
+
+2.  **Get Configuration:**
+    *   Go to Project Settings > General
+    *   Register a new Web App
+    *   Copy the `firebaseConfig` values
+
+3.  **Configure Environment:**
+    *   Create `.env.local` (copy from `.env.example`)
+    *   Fill in the Firebase variables:
+        ```env
+        VITE_FIREBASE_API_KEY=your_api_key
+        VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+        VITE_FIREBASE_PROJECT_ID=your_project_id
+        VITE_FIREBASE_STORAGE_BUCKET=your_bucket.appspot.com
+        VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+        VITE_FIREBASE_APP_ID=your_app_id
+        ```
+
+## 🚀 Getting Started
+
+1.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+2.  **Set up environment variables:**
+    *   Copy `.env.example` to `.env.local`
+    *   Add your `VITE_GEMINI_API_KEY`
+    *   Add your Firebase config (see above)
+
+3.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+
+## 🛠️ Tech Stack
+
+*   **Frontend:** React, TypeScript, Tailwind CSS
+*   **AI:** Google Gemini 2.5 Flash
+*   **Auth & DB:** Firebase (Auth + Firestore)
+*   **Build:** Vite
+*   **Parsing:** PDF.js, Mammoth (DOCX)
 
 ## Using the App
 - Paste/upload your resume and paste the job description, then click **Optimize My Resume**.

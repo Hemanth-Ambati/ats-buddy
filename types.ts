@@ -24,6 +24,8 @@ export interface KeywordAnalysis {
  */
 export interface JDAnalysis {
   title?: string;       // Job title (e.g., "Senior Software Engineer")
+  role?: string;        // Specific role name (e.g. "Backend Developer")
+  company?: string;     // Company name (e.g. "Google")
   summary?: string;     // Brief description of the role
   keywords: string[];   // Key terms and technologies mentioned
   skills: string[];     // Required/preferred skills
@@ -39,6 +41,8 @@ export interface ScoreBreakdown {
   alignmentNotes: string;       // Detailed explanation of score
   matchedKeywords: string[];    // Keywords that align with JD
   missingKeywords: string[];    // Keywords absent from resume
+  jobTitle?: string;            // Extracted from JD (moved from JDAnalysis)
+  company?: string;             // Extracted from JD (moved from JDAnalysis)
 }
 
 /**
@@ -117,6 +121,8 @@ export interface ChatMessage {
  */
 export interface SessionState {
   sessionId: string;           // Persistent session identifier
+  title?: string;              // Human-readable session title (e.g. Job Title)
+  updatedAt?: string;          // Last modification timestamp
   correlationId: string;       // Current analysis correlation ID
   resumeText: string;          // User's resume content
   jobDescriptionText: string;  // Target job description

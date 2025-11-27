@@ -1,22 +1,51 @@
 import * as React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { resetSession } from '../services/sessionService';
 
 interface HeaderProps {
   theme?: 'light' | 'dark';
   toggleTheme?: () => void;
   onChatToggle?: () => void;
+  onMenuToggle?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle }) => {
+export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle, onMenuToggle, isSidebarOpen }) => {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      resetSession();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to log out', error);
+    }
+  };
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 transition-colors duration-300">
       <div className="container mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            ATS <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-emerald-600 dark:from-sky-400 dark:to-emerald-400">Buddy</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">
-            Optimize your resume for any job description with AI-powered analysis.
-          </p>
+        <div className="flex items-center gap-4">
+          {onMenuToggle && !isSidebarOpen && (
+            <button
+              onClick={onMenuToggle}
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              aria-label="Open Sidebar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+          )}
+
+          <div className={isSidebarOpen ? "md:hidden" : ""}>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              ATS <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-emerald-600 dark:from-sky-400 dark:to-emerald-400">Buddy</span>
+            </h1>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {onChatToggle && (
@@ -47,6 +76,33 @@ export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle
                 </svg>
               )}
             </button>
+          )}
+
+          {currentUser && (
+            <div className="relative ml-2">
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-2 focus:outline-none"
+              >
+                <div className="h-8 w-8 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center text-sky-700 dark:text-sky-300 font-bold border border-sky-200 dark:border-sky-800">
+                  {currentUser.email?.charAt(0).toUpperCase()}
+                </div>
+              </button>
+
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 border border-slate-200 dark:border-slate-700 ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700 mb-1">
+                    {currentUser.email}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
