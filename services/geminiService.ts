@@ -19,7 +19,6 @@ import { log } from './logger';
 
 // API key resolution: Vite env vars take precedence, fallback to Node env
 const API_KEY =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
   process.env.GEMINI_API_KEY ||
   process.env.API_KEY;
 
