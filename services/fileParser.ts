@@ -30,7 +30,7 @@ async function parseDocx(file: File): Promise<string> {
 }
 
 async function parsePdf(file: File): Promise<string> {
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf');
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
   // Ensure workerSrc points to a bundled worker so we don't rely on CDN fetches during runtime.
   try {
@@ -65,4 +65,4 @@ async function parsePdf(file: File): Promise<string> {
   return result;
 }
 
-export default { parseFile };
+
