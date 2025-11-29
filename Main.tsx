@@ -14,7 +14,10 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LoginPage } from './components/Auth/LoginPage';
 import { SignupPage } from './components/Auth/SignupPage';
 import { ForgotPasswordPage } from './components/Auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/Auth/ResetPasswordPage';
+import { ProfilePage } from './components/Auth/ProfilePage';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { PublicOnlyRoute } from './components/Auth/PublicOnlyRoute';
 import { Dashboard } from './components/Dashboard';
 import { LandingPage } from './components/LandingPage';
 
@@ -57,9 +60,46 @@ const Main: React.FC = () => {
           <Router>
             <Routes>
               <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicOnlyRoute>
+                    <SignupPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicOnlyRoute>
+                    <ForgotPasswordPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicOnlyRoute>
+                    <ResetPasswordPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/app"
                 element={

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose } from 'lucide-react';
+import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home } from 'lucide-react';
 import type { SessionSummary } from '../services/firestoreService';
 
 interface SessionSidebarProps {
@@ -9,6 +9,7 @@ interface SessionSidebarProps {
     onNewSession: () => void;
     onRenameSession: (sessionId: string, newTitle: string) => void;
     onDeleteSession: (sessionId: string) => void;
+    onHome: () => void;
     isOpen: boolean;
     onToggle: () => void;
     width: number;
@@ -22,6 +23,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     onNewSession,
     onRenameSession,
     onDeleteSession,
+    onHome,
     isOpen,
     onToggle,
     width,
@@ -161,7 +163,17 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                     </button>
                 </div>
 
-                <div className="px-4 py-3 flex justify-between items-center bg-transparent mt-2">
+                <div className="px-3 py-2 space-y-1">
+                    <button
+                        onClick={onHome}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        <Home size={18} />
+                        Home
+                    </button>
+                </div>
+
+                <div className="px-4 py-2 flex justify-between items-center bg-transparent">
                     <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chats</h2>
                     <button
                         onClick={onNewSession}
