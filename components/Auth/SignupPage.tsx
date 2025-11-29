@@ -27,7 +27,7 @@ export const SignupPage: React.FC = () => {
             setError('');
             setLoading(true);
             await signup(email, password);
-            navigate('/app');
+            navigate('/home');
         } catch (err) {
             setError('Failed to create an account. Email may already be in use.');
             console.error(err);
@@ -146,7 +146,7 @@ export const SignupPage: React.FC = () => {
                                 try {
                                     setLoading(true);
                                     await loginWithGoogle();
-                                    navigate('/app');
+                                    navigate('/home');
                                 } catch (error) {
                                     console.error(error);
                                     setError('Failed to sign up with Google.');

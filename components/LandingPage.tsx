@@ -37,7 +37,7 @@ export const LandingPage: React.FC = () => {
                     </button>
                     {currentUser ? (
                         <Link
-                            to="/app"
+                            to="/home"
                             className="px-5 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium hover:opacity-90 transition-opacity"
                         >
                             Go to Dashboard
