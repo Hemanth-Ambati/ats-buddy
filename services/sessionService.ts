@@ -142,7 +142,7 @@ function saveHistory(history: SessionHistoryMap) {
   }
 }
 
-export function saveSessionToHistory(session: SessionState) {
+export function saveSessionToHistory(session: SessionState, force: boolean = false) {
   const history = getHistory();
 
   // Check if session has meaningful content
@@ -150,7 +150,7 @@ export function saveSessionToHistory(session: SessionState) {
     (session.jobDescriptionText && session.jobDescriptionText.trim().length > 0) ||
     (session.chatHistory && session.chatHistory.length > 0);
 
-  if (hasContent) {
+  if (hasContent || force) {
     // Update title if generic
     const title = session.title || (session.analysis?.jdAnalysis?.output?.title) || 'Untitled Session';
 

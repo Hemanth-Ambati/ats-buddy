@@ -19,6 +19,7 @@ import { ProfilePage } from './components/Auth/ProfilePage';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { PublicOnlyRoute } from './components/Auth/PublicOnlyRoute';
 import { Dashboard } from './components/Dashboard';
+import { SessionEditor } from './components/SessionEditor';
 import { LandingPage } from './components/LandingPage';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -101,10 +102,18 @@ const Main: React.FC = () => {
                 }
               />
               <Route
-                path="/app"
+                path="/home"
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/session/:sessionId"
+                element={
+                  <ProtectedRoute>
+                    <SessionEditor />
                   </ProtectedRoute>
                 }
               />
