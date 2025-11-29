@@ -190,9 +190,24 @@ JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
 RULES:
 1. Analyze the Job Description to identify key missing skills/keywords yourself.
 2. Rewrite the resume to incorporate these missing elements naturally.
-3. Use standard, clean Markdown formatting (bullet points).
+3. Use standard, clean Markdown formatting.
 4. Do NOT fabricate experience.
 5. Return the full optimized resume markdown and a brief rationale.
+
+FORMATTING RULES (CRITICAL):
+- Use "##" for Section Headers (e.g., ## EXPERIENCE). Always add a blank line after.
+- For EXPERIENCE entries, use this EXACT structure:
+  **Company Name** | Date
+  **Job Title**
+  * Bullet point...
+  (Ensure Job Title is on a NEW LINE below Company)
+
+- For EDUCATION entries, use this EXACT structure:
+  **University Name** | Date
+  **Degree**
+  (Ensure Degree is on a NEW LINE below University)
+
+- Do NOT merge Company and Job Title on the same line.
 
 JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
       return generateStructured<OptimizedResumeDraft>(prompt, optimiserSchema, 0.25);
@@ -246,8 +261,8 @@ export async function analyzeKeywordOnly(
   };
 
   const keywordAnalysis = await runStage('keywordAnalysis', async () => {
-    const prompt = `You are the Keyword Analyzer agent. Compare the Resume against the Job Description. Return matched/missing keywords and 3-5 concise suggestions.
-JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
+    const prompt = `You are the Keyword Analyzer agent.Compare the Resume against the Job Description.Return matched / missing keywords and 3 - 5 concise suggestions.
+JOB DESCRIPTION: \n${jobDescription}\n\nRESUME: \n${resume}`;
     return generateStructured<KeywordAnalysis>(prompt, keywordSchema, 0.2);
   });
 
@@ -289,8 +304,8 @@ export async function analyzeScoreOnly(
   // Parallelize Keyword + Scoring
   const [keywordAnalysis, scoring] = await Promise.all([
     runStage('keywordAnalysis', async () => {
-      const prompt = `You are the Keyword Analyzer agent. Compare the Resume against the Job Description. Return matched/missing keywords and 3-5 concise suggestions.
-JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
+      const prompt = `You are the Keyword Analyzer agent.Compare the Resume against the Job Description.Return matched / missing keywords and 3 - 5 concise suggestions.
+JOB DESCRIPTION: \n${jobDescription}\n\nRESUME: \n${resume}`;
       return generateStructured<KeywordAnalysis>(prompt, keywordSchema, 0.2);
     }).then(res => {
       updateProgress({ keywordAnalysis: res });
@@ -298,13 +313,13 @@ JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
     }),
 
     runStage('scoring', async () => {
-      const prompt = `You are the ATS Scorer agent. Compare the Resume against the Job Description.
-      1. Calculate an overall match score (0-100).
+      const prompt = `You are the ATS Scorer agent.Compare the Resume against the Job Description.
+      1. Calculate an overall match score(0 - 100).
       2. Provide alignment notes.
       3. List matched and missing keywords.
       4. EXTRACT the "Job Title" and "Company Name" from the Job Description.
       
-JOB DESCRIPTION:\n${jobDescription}\n\nRESUME:\n${resume}`;
+JOB DESCRIPTION: \n${jobDescription}\n\nRESUME: \n${resume}`;
       const res = await generateStructured<ScoreBreakdown>(prompt, scoringSchema, 0.2);
       res.overall = Math.round(res.overall);
       return res;

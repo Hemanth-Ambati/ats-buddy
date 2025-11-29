@@ -21,6 +21,8 @@ import { loadUserSession, saveUserSession, subscribeToUserSessions, loadSessionB
 import { SessionSidebar } from './SessionSidebar';
 import { Menu } from 'lucide-react';
 
+import { DashboardHome } from './DashboardHome';
+
 export const Dashboard: React.FC = () => {
     const { currentUser } = useAuth();
     const { theme, toggleTheme } = useTheme();
@@ -32,6 +34,7 @@ export const Dashboard: React.FC = () => {
     const [analysisResult, setAnalysisResult] = React.useState<AnalysisResult | null>(session.analysis ?? null);
 
     // UI state
+    const [view, setView] = React.useState<'home' | 'editor'>('home');
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string | null>(null);
     // const [logs, setLogs] = React.useState<LogEntry[]>([]); // Recent logs for debug panel
@@ -151,6 +154,7 @@ export const Dashboard: React.FC = () => {
         setSession(newSession);
         setAnalysisResult(null);
         setIsChatVisible(false);
+        setView('editor');
         if (currentUser) {
             await saveUserSession(currentUser.uid, newSession);
         }
@@ -177,6 +181,7 @@ export const Dashboard: React.FC = () => {
                 setSession(loadedSession);
                 setAnalysisResult(loadedSession.analysis ?? null);
                 setIsChatVisible(!!loadedSession.analysis); // Open chat if analysis exists
+                setView('editor');
             }
         } catch (err) {
             console.error('Failed to switch session', err);
@@ -336,6 +341,7 @@ You can now ask me specific questions about the analysis or request further impr
                 onNewSession={handleNewSession}
                 onRenameSession={handleRenameSession}
                 onDeleteSession={handleDeleteSession}
+                onHome={() => setView('home')}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 width={sidebarWidth}
@@ -349,43 +355,52 @@ You can now ask me specific questions about the analysis or request further impr
                     toggleTheme={toggleTheme}
                     onChatToggle={toggleChat}
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                    onHome={() => setView('home')}
                     isSidebarOpen={isSidebarOpen}
                 />
 
                 <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto pb-8">
-                        <div className="relative">
-                            <InputSection
-                                resumeText={resumeText}
-                                setResumeText={handleResumeTextChange}
-                                jobDescriptionText={jobDescriptionText}
-                                setJobDescriptionText={handleJobDescriptionChange}
-                                onAnalyze={handleAnalyze}
-                                onKeywordAnalyze={handleKeywordAnalyze}
-                                onScoreAnalyze={handleScoreAnalyze}
-                                isLoading={isLoading}
-                            />
-                            {isChatVisible && (
-                                <div className="absolute inset-0 z-10 h-full">
-                                    <ChatWindow
-                                        analysisResult={analysisResult}
-                                        resumeText={resumeText}
-                                        jobDescriptionText={jobDescriptionText}
-                                        onResumeUpdate={handleResumeUpdate}
-                                        sessionId={session.sessionId}
-                                        onChatHistoryUpdate={(msg) => setSession(prev => appendChat(prev, msg))}
-                                        chatHistory={session.chatHistory}
-                                        onClose={() => setIsChatVisible(false)}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        <ResultsSection
-                            result={analysisResult}
-                            isLoading={isLoading}
-                            error={error}
+                    {view === 'home' ? (
+                        <DashboardHome
+                            sessions={sessionsList}
+                            onNewSession={handleNewSession}
+                            onSelectSession={handleSwitchSession}
                         />
-                    </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto pb-8">
+                            <div className="relative">
+                                <InputSection
+                                    resumeText={resumeText}
+                                    setResumeText={handleResumeTextChange}
+                                    jobDescriptionText={jobDescriptionText}
+                                    setJobDescriptionText={handleJobDescriptionChange}
+                                    onAnalyze={handleAnalyze}
+                                    onKeywordAnalyze={handleKeywordAnalyze}
+                                    onScoreAnalyze={handleScoreAnalyze}
+                                    isLoading={isLoading}
+                                />
+                                {isChatVisible && (
+                                    <div className="absolute inset-0 z-10 h-full">
+                                        <ChatWindow
+                                            analysisResult={analysisResult}
+                                            resumeText={resumeText}
+                                            jobDescriptionText={jobDescriptionText}
+                                            onResumeUpdate={handleResumeUpdate}
+                                            sessionId={session.sessionId}
+                                            onChatHistoryUpdate={(msg) => setSession(prev => appendChat(prev, msg))}
+                                            chatHistory={session.chatHistory}
+                                            onClose={() => setIsChatVisible(false)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <ResultsSection
+                                result={analysisResult}
+                                isLoading={isLoading}
+                                error={error}
+                            />
+                        </div>
+                    )}
                 </main>
 
                 <footer className="text-center p-4 text-slate-500 text-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800">

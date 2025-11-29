@@ -8,7 +8,7 @@ export const ForgotPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const { resetPassword } = useAuth();
+    const { resetPassword, checkEmailExists } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,6 +17,15 @@ export const ForgotPasswordPage: React.FC = () => {
             setMessage('');
             setError('');
             setLoading(true);
+
+            // Check if email exists
+            const exists = await checkEmailExists(email);
+            if (!exists) {
+                setError('No account found with this email address.');
+                setLoading(false);
+                return;
+            }
+
             await resetPassword(email);
             setMessage('Check your inbox for further instructions');
         } catch (err) {

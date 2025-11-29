@@ -14,6 +14,7 @@ export interface SessionSummary {
     sessionId: string;
     title: string;
     updatedAt: string;
+    preview?: string;
 }
 
 const USERS_COLLECTION = 'users';
@@ -165,6 +166,7 @@ export function subscribeToUserSessions(userId: string, callback: (sessions: Ses
                         sessionId: doc.id,
                         title: data.title || 'Untitled Session',
                         updatedAt: data.updatedAt || new Date().toISOString(),
+                        preview: data.resumeText ? data.resumeText.substring(0, 150) + '...' : 'No preview available',
                         hasContent
                     };
                 })
@@ -172,7 +174,8 @@ export function subscribeToUserSessions(userId: string, callback: (sessions: Ses
                 .map(session => ({
                     sessionId: session.sessionId,
                     title: session.title,
-                    updatedAt: session.updatedAt
+                    updatedAt: session.updatedAt,
+                    preview: session.preview
                 }));
 
             // Sort in memory (descending by updatedAt)

@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@google/genai": "^1.29.1",
     "@vercel/speed-insights": "^1.2.0",
     "docx": "^8.4.0",
