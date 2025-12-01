@@ -39,7 +39,7 @@ export const VerifyEmailPage: React.FC = () => {
             setError('');
             setLoading(true);
             await sendVerification();
-            setMessage('Verification email sent! Please check your inbox.');
+            setMessage('Verification email sent! Please check your inbox and spam folder.');
             setCooldown(60); // Start 60s cooldown on success
         } catch (err: any) {
             console.error(err);
