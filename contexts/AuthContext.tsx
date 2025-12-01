@@ -18,14 +18,18 @@ import {
     updatePassword,
     confirmPasswordReset,
     verifyPasswordResetCode,
-    fetchSignInMethodsForEmail
+    fetchSignInMethodsForEmail,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    sendEmailVerification
 } from 'firebase/auth';
-import { auth, googleProvider } from '../services/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, googleProvider, functions } from '../services/firebase';
 
 interface AuthContextType {
     currentUser: User | null;
     loading: boolean;
-    signup: (email: string, password: string) => Promise<void>;
+    signup: (email: string, password: string, name?: string) => Promise<void>;
     login: (email: string, password: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
@@ -35,6 +39,8 @@ interface AuthContextType {
     confirmReset: (oobCode: string, newPassword: string) => Promise<void>;
     verifyResetCode: (oobCode: string) => Promise<string>;
     checkEmailExists: (email: string) => Promise<boolean>;
+    reauthenticate: (password: string) => Promise<void>;
+    sendVerification: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -60,8 +66,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return unsubscribe;
     }, []);
 
-    const signup = async (email: string, password: string) => {
-        await createUserWithEmailAndPassword(auth, email, password);
+    const signup = async (email: string, password: string, name?: string) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (name) {
+            await updateProfile(userCredential.user, { displayName: name });
+            // Force refresh user state to reflect the new display name immediately
+            setCurrentUser({ ...userCredential.user, displayName: name });
+        }
     };
 
     const login = async (email: string, password: string) => {
@@ -104,13 +115,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const checkEmailExists = async (email: string): Promise<boolean> => {
         try {
-            const methods = await fetchSignInMethodsForEmail(auth, email);
-            return methods.length > 0;
+            // Use Cloud Function to bypass client-side enumeration protection
+            const checkEmail = httpsCallable(functions, 'checkEmailExists');
+            const result = await checkEmail({ email }) as { data: { exists: boolean } };
+            return result.data.exists;
         } catch (error) {
             console.error("Error checking email existence:", error);
-            // If error is due to enumeration protection, we might not get a clear answer.
-            // But usually this works if enabled in console.
+            // Fallback to false on error to be safe, or true to allow flow to continue?
+            // If the function fails (e.g. network), we probably want to allow the user to try sending the email anyway.
+            // But the UI logic expects true/false.
+            // Let's return false so the UI shows "No account found" or generic error if we want.
+            // Actually, if the function fails, we might want to assume it exists to not block the user if it's just a network glitch?
+            // But the user specifically wants the check.
             return false;
+        }
+    };
+
+    const reauthenticate = async (password: string): Promise<void> => {
+        if (auth.currentUser && auth.currentUser.email) {
+            const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+            await reauthenticateWithCredential(auth.currentUser, credential);
+        }
+    };
+
+    const sendVerification = async () => {
+        if (auth.currentUser) {
+            await sendEmailVerification(auth.currentUser);
         }
     };
 
@@ -126,7 +156,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserPassword,
         confirmReset,
         verifyResetCode,
-        checkEmailExists
+        checkEmailExists,
+        reauthenticate,
+        sendVerification
     };
 
     return (

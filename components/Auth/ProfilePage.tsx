@@ -3,67 +3,121 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, User, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { emailService } from '../../services/emailService';
+import { getPasswordHistory, addToPasswordHistory } from '../../services/firestoreService';
 
 export const ProfilePage: React.FC = () => {
-    const { currentUser, updateName, updateUserPassword } = useAuth();
+    const { currentUser, updateName, updateUserPassword, reauthenticate } = useAuth();
     const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+    const [currentPassword, setCurrentPassword] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Helper to hash password for history check
+    const hashPassword = async (pwd: string): Promise<string> => {
+        const msgBuffer = new TextEncoder().encode(pwd);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
 
-        const promises = [];
-        if (displayName !== currentUser?.displayName) {
-            promises.push(updateName(displayName));
-        }
-        if (password) {
-            if (password !== confirmPassword) {
-                setMessage({ type: 'error', text: 'Passwords do not match' });
-                setLoading(false);
-                return;
+        try {
+            // Check if user has password provider
+            const hasPasswordProvider = currentUser?.providerData.some(p => p.providerId === 'password');
+
+            if (password) {
+                if (hasPasswordProvider) {
+                    // Standard flow: require current password
+                    if (!currentPassword) {
+                        throw new Error('Please enter your current password to set a new one');
+                    }
+                    if (password === currentPassword) {
+                        throw new Error('New password cannot be the same as your current password');
+                    }
+                    // Verify current password first
+                    await reauthenticate(currentPassword);
+                } else {
+                    // Google user setting password for the first time: no current password needed
+                }
+
+                if (password !== confirmPassword) {
+                    throw new Error('Passwords do not match');
+                }
+
+                // Validate password strength
+                const hasUpperCase = /[A-Z]/.test(password);
+                const hasLowerCase = /[a-z]/.test(password);
+                const hasNumbers = /[0-9]/.test(password);
+                const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+                const isLongEnough = password.length >= 8;
+
+                if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar || !isLongEnough) {
+                    throw new Error('Password does not meet strength requirements');
+                }
+
+                // Check password history
+                if (currentUser?.uid) {
+                    const history = await getPasswordHistory(currentUser.uid);
+                    const newPasswordHash = await hashPassword(password);
+
+                    if (history.includes(newPasswordHash)) {
+                        throw new Error('You cannot use a previous password. Please choose a new one.');
+                    }
+
+                    await updateUserPassword(password);
+
+                    // Add to history on success
+                    await addToPasswordHistory(currentUser.uid, newPasswordHash);
+                }
             }
-            promises.push(updateUserPassword(password));
+
+            if (displayName !== currentUser?.displayName) {
+                await updateName(displayName);
+            }
+
+            setMessage({ type: 'success', text: 'Profile updated successfully' });
+
+            // Send email if password was changed
+            if (password && currentUser?.email) {
+                await emailService.sendPasswordChangeConfirmation(currentUser.email, displayName || currentUser.displayName || 'User');
+            }
+
+            setPassword('');
+            setConfirmPassword('');
+            setCurrentPassword('');
+        } catch (error: any) {
+            console.error(error);
+            let errorMessage = 'Failed to update profile. ';
+
+            // Check for specific Firebase auth error codes
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-password') {
+                errorMessage = 'Incorrect current password. Please try again.';
+            } else if (error.code === 'auth/requires-recent-login') {
+                errorMessage = 'Security requirement: You must have recently signed in to change your password. Please sign out and sign in again.';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Password is too weak. Please use a stronger password.';
+            } else if (error instanceof Error) {
+                // Only use the raw error message if we haven't set a specific one
+                errorMessage = error.message;
+            }
+
+            setMessage({ type: 'error', text: errorMessage });
+        } finally {
+            setLoading(false);
         }
-
-        Promise.all(promises)
-            .then(async () => {
-                setMessage({ type: 'success', text: 'Profile updated successfully' });
-
-                // Send email if password was changed
-                if (password && currentUser?.email) {
-                    await emailService.sendPasswordChangeConfirmation(currentUser.email, displayName || currentUser.displayName || 'User');
-                }
-
-                setPassword('');
-                setConfirmPassword('');
-            })
-            .catch((error: any) => {
-                console.error(error);
-                let errorMessage = 'Failed to update profile. ';
-
-                if (error.code === 'auth/requires-recent-login') {
-                    errorMessage = 'Security requirement: You must have recently signed in to change your password. Please sign out and sign in again.';
-                } else if (error instanceof Error) {
-                    errorMessage += error.message;
-                }
-
-                setMessage({ type: 'error', text: errorMessage });
-            })
-            .finally(() => {
-                setLoading(false);
-            });
     };
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
             <div className="max-w-3xl mx-auto">
                 <div className="mb-8">
-                    <Link to="/app" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+                    <Link to="/home" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
                         <ArrowLeft size={16} className="mr-1" />
                         Back to Dashboard
                     </Link>
@@ -128,34 +182,85 @@ export const ProfilePage: React.FC = () => {
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
                                     Leave blank to keep your current password.
                                 </p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                            New Password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            id="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
-                                            placeholder="New Password"
-                                            minLength={6}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                            Confirm New Password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            id="confirmPassword"
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
-                                            placeholder="Confirm New Password"
-                                            minLength={6}
-                                        />
+                                <div className="grid grid-cols-1 gap-6">
+                                    {currentUser?.providerData.some(p => p.providerId === 'password') && (
+                                        <div>
+                                            <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                Current Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                id="currentPassword"
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                                placeholder="Required only if changing password"
+                                                required={!!password}
+                                            />
+                                            {password && (
+                                                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                                    Required to verify your identity before changing password.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                {currentUser?.providerData.some(p => p.providerId === 'password') ? 'New Password' : 'Set Password'}
+                                            </label>
+                                            <input
+                                                type="password"
+                                                id="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                                placeholder="New Password"
+                                                minLength={8}
+                                            />
+                                            {/* Password Strength Checklist */}
+                                            {password && (
+                                                <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Password Requirements:</p>
+                                                    <ul className="space-y-1">
+                                                        <li className={`text-xs flex items-center gap-1.5 ${password.length >= 8 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                            {password.length >= 8 ? <CheckCircle size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-600" />}
+                                                            At least 8 characters
+                                                        </li>
+                                                        <li className={`text-xs flex items-center gap-1.5 ${/[A-Z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                            {/[A-Z]/.test(password) ? <CheckCircle size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-600" />}
+                                                            One uppercase letter
+                                                        </li>
+                                                        <li className={`text-xs flex items-center gap-1.5 ${/[a-z]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                            {/[a-z]/.test(password) ? <CheckCircle size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-600" />}
+                                                            One lowercase letter
+                                                        </li>
+                                                        <li className={`text-xs flex items-center gap-1.5 ${/[0-9]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                            {/[0-9]/.test(password) ? <CheckCircle size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-600" />}
+                                                            One number
+                                                        </li>
+                                                        <li className={`text-xs flex items-center gap-1.5 ${/[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                                                            {/[!@#$%^&*(),.?":{}|<>]/.test(password) ? <CheckCircle size={12} /> : <div className="w-3 h-3 rounded-full border border-slate-300 dark:border-slate-600" />}
+                                                            One special character
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                Confirm New Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                id="confirmPassword"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                                placeholder="Confirm New Password"
+                                                minLength={8}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

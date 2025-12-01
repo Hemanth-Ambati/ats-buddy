@@ -21,6 +21,9 @@ import { PublicOnlyRoute } from './components/Auth/PublicOnlyRoute';
 import { Dashboard } from './components/Dashboard';
 import { SessionEditor } from './components/SessionEditor';
 import { LandingPage } from './components/LandingPage';
+import { WikiPage } from './components/Wiki/WikiPage';
+import { VerifyEmailPage } from './components/Auth/VerifyEmailPage';
+import { AuthActionPage } from './components/Auth/AuthActionPage';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {
@@ -53,71 +56,127 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
+import { AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
+import { PageTransition } from './components/PageTransition';
+
+const AnimatedRoutes: React.FC = () => {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <PageTransition>
+                <LoginPage />
+              </PageTransition>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicOnlyRoute>
+              <PageTransition>
+                <SignupPage />
+              </PageTransition>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicOnlyRoute>
+              <PageTransition>
+                <ForgotPasswordPage />
+              </PageTransition>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicOnlyRoute>
+              <PageTransition>
+                <ResetPasswordPage />
+              </PageTransition>
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/auth/action"
+          element={
+            <PageTransition>
+              <AuthActionPage />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <ProfilePage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <ProtectedRoute requireVerification={false}>
+              <PageTransition>
+                <VerifyEmailPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <Dashboard />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session/:sessionId"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <SessionEditor />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wiki"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <WikiPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const Main: React.FC = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
           <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route
-                path="/login"
-                element={
-                  <PublicOnlyRoute>
-                    <LoginPage />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/signup"
-                element={
-                  <PublicOnlyRoute>
-                    <SignupPage />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/forgot-password"
-                element={
-                  <PublicOnlyRoute>
-                    <ForgotPasswordPage />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/reset-password"
-                element={
-                  <PublicOnlyRoute>
-                    <ResetPasswordPage />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/session/:sessionId"
-                element={
-                  <ProtectedRoute>
-                    <SessionEditor />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+            <AnimatedRoutes />
           </Router>
         </ThemeProvider>
       </AuthProvider>

@@ -15,6 +15,7 @@
     "@vercel/speed-insights": "^1.2.0",
     "docx": "^8.4.0",
     "firebase": "^12.6.0",
+    "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.554.0",
