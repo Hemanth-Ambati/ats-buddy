@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import { isDisposableEmail } from '../../services/emailValidationService';
 
 export const SignupPage: React.FC = () => {
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { signup, loginWithGoogle } = useAuth();
+    const { signup, loginWithGoogle, sendVerification } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26,7 +29,21 @@ export const SignupPage: React.FC = () => {
         try {
             setError('');
             setLoading(true);
-            await signup(email, password);
+
+            // 1. Check for disposable email
+            const isDisposable = await isDisposableEmail(email);
+            if (isDisposable) {
+                setLoading(false);
+                return setError('Disposable or temporary email addresses are not allowed.');
+            }
+
+            // 2. Create account with name
+            const fullName = `${firstName} ${lastName}`.trim();
+            await signup(email, password, fullName);
+
+            // 3. Send verification email
+            await sendVerification();
+
             navigate('/home');
         } catch (err) {
             setError('Failed to create an account. Email may already be in use.');
@@ -68,6 +85,36 @@ export const SignupPage: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="first-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name</label>
+                                <input
+                                    id="first-name"
+                                    name="firstName"
+                                    type="text"
+                                    autoComplete="given-name"
+                                    required
+                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                    placeholder="John"
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="last-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
+                                <input
+                                    id="last-name"
+                                    name="lastName"
+                                    type="text"
+                                    autoComplete="family-name"
+                                    required
+                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                    placeholder="Doe"
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         <div>
                             <label htmlFor="email-address" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email address</label>
                             <input

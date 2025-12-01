@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home } from 'lucide-react';
+import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home, Book } from 'lucide-react';
 import type { SessionSummary } from '../services/firestoreService';
 
 interface SessionSidebarProps {
@@ -10,6 +10,7 @@ interface SessionSidebarProps {
     onRenameSession: (sessionId: string, newTitle: string) => void;
     onDeleteSession: (sessionId: string) => void;
     onHome: () => void;
+    onWiki: () => void;
     isOpen: boolean;
     onToggle: () => void;
     width: number;
@@ -24,6 +25,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     onRenameSession,
     onDeleteSession,
     onHome,
+    onWiki,
     isOpen,
     onToggle,
     width,
@@ -147,7 +149,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
         <>
             <div
                 ref={sidebarRef}
-                className={`fixed md:relative z-20 h-full bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:border-none'}`}
+                className={`fixed md:relative z-50 h-screen bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] transition-all duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-0 md:border-none md:shadow-none'}`}
                 style={{ width: isOpen ? `${width}px` : undefined }}
             >
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -170,6 +172,13 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                     >
                         <Home size={18} />
                         Home
+                    </button>
+                    <button
+                        onClick={onWiki}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        <Book size={18} />
+                        Wiki
                     </button>
                 </div>
 

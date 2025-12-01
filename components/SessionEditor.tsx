@@ -27,7 +27,7 @@ export const SessionEditor: React.FC = () => {
 
     // Sidebar state
     const [sessionsList, setSessionsList] = React.useState<SessionSummary[]>(() => getLocalSessions());
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => window.innerWidth >= 768);
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [sidebarWidth, setSidebarWidth] = React.useState(288);
 
     // Subscribe to sessions list
@@ -298,6 +298,7 @@ You can now ask me specific questions about the analysis or request further impr
                 onRenameSession={handleRenameSession}
                 onDeleteSession={handleDeleteSession}
                 onHome={() => navigate('/home')}
+                onWiki={() => navigate('/wiki')}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 width={sidebarWidth}
@@ -349,8 +350,8 @@ You can now ask me specific questions about the analysis or request further impr
                         />
                     </div>
                 </main>
-                <footer className="text-center p-4 text-slate-500 text-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800">
-                    <p>Powered by Google Gemini</p>
+                <footer className="text-center p-4 text-slate-500 text-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 z-10">
+                    <p>&copy; {new Date().getFullYear()} ATS Buddy. All rights reserved.</p>
                 </footer>
             </div>
         </div>

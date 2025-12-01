@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import { isDisposableEmail } from '../../services/emailValidationService';
 
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -17,8 +18,16 @@ export const LoginPage: React.FC = () => {
         try {
             setError('');
             setLoading(true);
+
+            // 1. Check for disposable email
+            const isDisposable = await isDisposableEmail(email);
+            if (isDisposable) {
+                setLoading(false);
+                return setError('Disposable or temporary email addresses are not allowed.');
+            }
+
             await login(email, password);
-            navigate('/home');
+            navigate('/wiki');
         } catch (err) {
             setError('Failed to sign in. Please check your credentials.');
             console.error(err);
@@ -129,7 +138,7 @@ export const LoginPage: React.FC = () => {
                                 try {
                                     setLoading(true);
                                     await loginWithGoogle();
-                                    navigate('/home');
+                                    navigate('/wiki');
                                 } catch (error) {
                                     console.error(error);
                                     setError('Failed to sign in with Google.');

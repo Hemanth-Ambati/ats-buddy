@@ -31,4 +31,8 @@ export const db = getFirestore(app);
 // Initialize Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
+// Initialize Functions
+import { getFunctions } from 'firebase/functions';
+export const functions = getFunctions(app);
+
 export default app;

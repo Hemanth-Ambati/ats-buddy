@@ -63,14 +63,6 @@ export const LandingPage: React.FC = () => {
 
             {/* Hero Section */}
             <main className="relative z-10 container mx-auto px-6 pt-20 pb-32 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-sm font-medium mb-8 animate-fade-in-up">
-                    <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
-                    </span>
-                    Powered by Google Gemini
-                </div>
-
                 <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-8 max-w-4xl mx-auto leading-tight">
                     Beat the ATS. <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-blue-500 to-emerald-500">
@@ -160,7 +152,7 @@ export const LandingPage: React.FC = () => {
             {/* Footer */}
             <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12">
                 <div className="container mx-auto px-6 text-center text-slate-500 dark:text-slate-400">
-                    <p>&copy; {new Date().getFullYear()} ATS Buddy. Built for the Google AI Hackathon.</p>
+                    <p>&copy; {new Date().getFullYear()} ATS Buddy. All rights reserved.</p>
                 </div>
             </footer>
         </div>

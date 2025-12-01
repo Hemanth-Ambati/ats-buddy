@@ -196,3 +196,49 @@ export function subscribeToUserSessions(userId: string, callback: (sessions: Ses
         return () => { };
     }
 }
+
+/**
+ * Retrieves the password history for a user.
+ */
+export async function getPasswordHistory(userId: string): Promise<string[]> {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userId);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists() && userSnap.data().passwordHistory) {
+            return userSnap.data().passwordHistory as string[];
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching password history:', error);
+        return [];
+    }
+}
+
+/**
+ * Adds a password hash to the user's history.
+ * Limits history to the last 5 passwords.
+ */
+export async function addToPasswordHistory(userId: string, passwordHash: string) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userId);
+        const userSnap = await getDoc(userRef);
+        let history: string[] = [];
+
+        if (userSnap.exists() && userSnap.data().passwordHistory) {
+            history = userSnap.data().passwordHistory;
+        }
+
+        // Add new hash
+        history.push(passwordHash);
+
+        // Keep only last 5
+        if (history.length > 5) {
+            history = history.slice(history.length - 5);
+        }
+
+        await setDoc(userRef, { passwordHistory: history }, { merge: true });
+    } catch (error) {
+        console.error('Error updating password history:', error);
+    }
+}
