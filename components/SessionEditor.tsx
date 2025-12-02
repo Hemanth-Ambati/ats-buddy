@@ -98,7 +98,7 @@ export const SessionEditor: React.FC = () => {
             let title = session.title;
             const scoringOutput = session.analysis?.scoring?.output;
 
-            if ((!title || title === 'New Session') && scoringOutput) {
+            if ((!title || title === 'New Session' || title === 'Untitled Session') && scoringOutput) {
                 if (scoringOutput.jobTitle && scoringOutput.company) {
                     title = `${scoringOutput.jobTitle} at ${scoringOutput.company}`;
                 } else if (scoringOutput.jobTitle) {

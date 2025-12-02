@@ -37,7 +37,7 @@ export async function saveUserSession(userId: string, session: SessionState) {
         if (hasContent) {
             await setDoc(sessionRef, {
                 ...session,
-                title: session.title || 'New Session',
+                title: session.title || 'Untitled Session',
                 updatedAt: new Date().toISOString()
             }, { merge: true });
 
