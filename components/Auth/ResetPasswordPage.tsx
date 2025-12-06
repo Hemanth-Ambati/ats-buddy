@@ -2,42 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-import { emailService } from '../../services/emailService';
 
 export const ResetPasswordPage: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const oobCode = searchParams.get('oobCode');
-    const { confirmReset, verifyResetCode } = useAuth();
+    const emailParam = searchParams.get('email') || '';
+    const { confirmReset } = useAuth();
     const navigate = useNavigate();
 
+    const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
-    const [email, setEmail] = useState('');
-
-    useEffect(() => {
-        const verifyCode = async () => {
-            if (!oobCode) {
-                setError('Invalid or missing reset code. Please request a new password reset link.');
-                return;
-            }
-            try {
-                const userEmail = await verifyResetCode(oobCode);
-                setEmail(userEmail);
-            } catch (err) {
-                setError('Invalid or expired reset code. Please request a new link.');
-                console.error(err);
-            }
-        };
-
-        verifyCode();
-    }, [oobCode, verifyResetCode]);
+    const [email, setEmail] = useState(emailParam);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!oobCode) return;
 
         if (password !== confirmPassword) {
             return setError('Passwords do not match');
@@ -46,19 +27,14 @@ export const ResetPasswordPage: React.FC = () => {
         try {
             setError('');
             setLoading(true);
-            await confirmReset(oobCode, password);
-
-            // Send confirmation email
-            if (email) {
-                await emailService.sendPasswordResetConfirmation(email);
-            }
+            await confirmReset(email, code, password);
 
             setSuccess(true);
             setTimeout(() => {
                 navigate('/login');
             }, 3000);
-        } catch (err) {
-            setError('Failed to reset password. The link may have expired.');
+        } catch (err: any) {
+            setError(err.message || 'Failed to reset password. The code may be invalid or expired.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -105,7 +81,7 @@ export const ResetPasswordPage: React.FC = () => {
                         Set New Password
                     </h2>
                     <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-                        Enter your new password below.
+                        Enter the verification code sent to your email and your new password.
                     </p>
                 </div>
 
@@ -116,61 +92,79 @@ export const ResetPasswordPage: React.FC = () => {
                     </div>
                 )}
 
-                {!oobCode ? (
-                    <div className="text-center">
-                        <Link to="/forgot-password" className="text-sky-600 hover:text-sky-500 font-medium">
-                            Request a new link
-                        </Link>
-                    </div>
-                ) : (
-                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    required
-                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    minLength={6}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                                <input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type="password"
-                                    required
-                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
-                                    placeholder="••••••••"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    minLength={6}
-                                />
-                            </div>
-                        </div>
-
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    <div className="space-y-4">
                         <div>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
-                            >
-                                {loading ? (
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                ) : 'Reset Password'}
-                            </button>
+                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                required
+                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
                         </div>
-                    </form>
-                )}
+                        <div>
+                            <label htmlFor="code" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Verification Code</label>
+                            <input
+                                id="code"
+                                name="code"
+                                type="text"
+                                required
+                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                placeholder="123456"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                required
+                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                minLength={6}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+                            <input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type="password"
+                                required
+                                className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                placeholder="••••••••"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                minLength={6}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+                        >
+                            {loading ? (
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : 'Reset Password'}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

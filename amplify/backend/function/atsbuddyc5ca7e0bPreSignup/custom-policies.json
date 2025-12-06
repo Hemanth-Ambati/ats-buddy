@@ -1,0 +1,12 @@
+[
+  {
+    "Action": [
+      "cognito-idp:ListUsers",
+      "cognito-idp:AdminLinkProviderForUser",
+      "cognito-idp:AdminUpdateUserAttributes"
+    ],
+    "Resource": [
+      "*"
+    ]
+  }
+]

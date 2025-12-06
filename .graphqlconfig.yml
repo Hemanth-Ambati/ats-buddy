@@ -1,0 +1,17 @@
+projects:
+  atsbuddy:
+    schemaPath: src/graphql/schema.json
+    includes:
+      - src/**/*.ts
+      - src/**/*.tsx
+    excludes:
+      - ./amplify/**
+      - ./**/*.md
+    extensions:
+      amplify:
+        codeGenTarget: typescript
+        generatedFileName: src/API.ts
+        docsFilePath: src/graphql
+extensions:
+  amplify:
+    version: 3

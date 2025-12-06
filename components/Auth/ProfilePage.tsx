@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, User, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { emailService } from '../../services/emailService';
-import { getPasswordHistory, addToPasswordHistory } from '../../services/firestoreService';
+import { getPasswordHistory, addToPasswordHistory } from '../../services/dbService';
 
 export const ProfilePage: React.FC = () => {
     const { currentUser, updateName, updateUserPassword, reauthenticate } = useAuth();

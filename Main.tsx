@@ -8,6 +8,7 @@
  */
 
 import * as React from 'react';
+// Force rebuild
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -23,6 +24,7 @@ import { SessionEditor } from './components/SessionEditor';
 import { LandingPage } from './components/LandingPage';
 import { WikiPage } from './components/Wiki/WikiPage';
 import { VerifyEmailPage } from './components/Auth/VerifyEmailPage';
+import { ConfirmEmailPage } from './components/Auth/ConfirmEmailPage';
 import { AuthActionPage } from './components/Auth/AuthActionPage';
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -133,6 +135,16 @@ const AnimatedRoutes: React.FC = () => {
                 <VerifyEmailPage />
               </PageTransition>
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/confirm-email"
+          element={
+            <PublicOnlyRoute>
+              <PageTransition>
+                <ConfirmEmailPage />
+              </PageTransition>
+            </PublicOnlyRoute>
           }
         />
         <Route

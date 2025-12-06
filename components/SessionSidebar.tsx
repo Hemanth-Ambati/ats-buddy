@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home, Book } from 'lucide-react';
-import type { SessionSummary } from '../services/firestoreService';
+import type { SessionSummary } from '../services/dbService';
 
 interface SessionSidebarProps {
     sessions: SessionSummary[];

@@ -1,0 +1,34 @@
+type User @model @auth(rules: [{ allow: owner }]) {
+  id: ID!
+  email: String
+  displayName: String
+  photoURL: String
+  lastSessionId: String
+  lastUpdated: AWSDateTime
+  passwordHistory: [String]
+  sessions: [Session] @hasMany
+}
+
+type Session @model @auth(rules: [{ allow: owner }]) {
+  id: ID!
+  title: String
+  updatedAt: AWSDateTime
+  resumeText: String
+  jobDescriptionText: String
+  chatHistory: String # Store as JSON string for flexibility
+  analysis: String # Store as JSON string for flexibility
+  userId: ID! @index(name: "byUser", sortKeyFields: ["updatedAt"])
+  user: User @belongsTo(fields: ["userId"])
+}
+
+type Query {
+  generateGeminiResponse(
+    prompt: String
+    schema: String
+    temperature: Float
+    messages: String # JSON string of ChatMessage[]
+    analysisContext: String # JSON string
+    resumeText: String
+    jobDescriptionText: String
+  ): String @function(name: "atsbuddyGeminiProxy-${env}") @auth(rules: [{ allow: private }])
+}

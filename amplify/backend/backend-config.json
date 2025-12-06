@@ -1,0 +1,167 @@
+{
+  "api": {
+    "atsbuddy": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "atsbuddyc5ca7e0b"
+        }
+      ],
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [
+            {
+              "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+              "userPoolConfig": {
+                "userPoolId": "authatsbuddyc5ca7e0b"
+              }
+            }
+          ],
+          "defaultAuthentication": {
+            "apiKeyConfig": {
+              "apiKeyExpirationDays": 7
+            },
+            "authenticationType": "API_KEY"
+          }
+        }
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "AppSync"
+    }
+  },
+  "auth": {
+    "atsbuddyc5ca7e0b": {
+      "customAuth": false,
+      "dependsOn": [
+        {
+          "attributes": [
+            "Arn",
+            "Name"
+          ],
+          "category": "function",
+          "resourceName": "atsbuddyc5ca7e0bPreSignup",
+          "triggerProvider": "Cognito"
+        }
+      ],
+      "frontendAuthConfig": {
+        "mfaConfiguration": "OPTIONAL",
+        "mfaTypes": [
+          "SMS"
+        ],
+        "passwordProtectionSettings": {
+          "passwordPolicyCharacters": [],
+          "passwordPolicyMinLength": 8
+        },
+        "signupAttributes": [
+          "EMAIL"
+        ],
+        "socialProviders": [
+          "GOOGLE"
+        ],
+        "usernameAttributes": [
+          "EMAIL"
+        ],
+        "verificationMechanisms": [
+          "EMAIL"
+        ]
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito"
+    }
+  },
+  "function": {
+    "atsbuddyGeminiProxy": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "atsbuddyc5ca7e0bPreSignup": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "cleanupUnverifiedUsers": {
+      "build": true,
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_auth_atsbuddyc5ca7e0b_googleClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "atsbuddyc5ca7e0b"
+        }
+      ]
+    },
+    "AMPLIFY_auth_atsbuddyc5ca7e0b_googleClientSecret": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "atsbuddyc5ca7e0b"
+        }
+      ]
+    },
+    "AMPLIFY_function_atsbuddyGeminiProxy_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "atsbuddyGeminiProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_atsbuddyGeminiProxy_geminiApiKey": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "atsbuddyGeminiProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_atsbuddyGeminiProxy_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "atsbuddyGeminiProxy"
+        }
+      ]
+    },
+    "AMPLIFY_function_atsbuddyc5ca7e0bPreSignup_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "atsbuddyc5ca7e0bPreSignup"
+        }
+      ]
+    },
+    "AMPLIFY_function_atsbuddyc5ca7e0bPreSignup_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "atsbuddyc5ca7e0bPreSignup"
+        }
+      ]
+    },
+    "AMPLIFY_function_cleanupUnverifiedUsers_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cleanupUnverifiedUsers"
+        }
+      ]
+    },
+    "AMPLIFY_function_cleanupUnverifiedUsers_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "cleanupUnverifiedUsers"
+        }
+      ]
+    }
+  }
+}

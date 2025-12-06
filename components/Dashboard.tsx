@@ -12,7 +12,7 @@ import { resetSession, saveSessionToHistory, getLocalSessions, renameSessionInHi
 import { subscribeLogger, type LogEntry } from '../services/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { saveUserSession, subscribeToUserSessions, renameUserSession, deleteUserSession, type SessionSummary } from '../services/firestoreService';
+import { saveUserSession, subscribeToUserSessions, renameUserSession, deleteUserSession, type SessionSummary } from '../services/dbService';
 import { SessionSidebar } from './SessionSidebar';
 import { Menu } from 'lucide-react';
 
@@ -42,9 +42,7 @@ export const Dashboard: React.FC = () => {
 
     const handleNewSession = async () => {
         const newSession = resetSession();
-        if (currentUser) {
-            await saveUserSession(currentUser.uid, newSession);
-        }
+        // Don't save to DB immediately - wait for content
         saveSessionToHistory(newSession, true);
         navigate(`/session/${newSession.sessionId}`);
     };

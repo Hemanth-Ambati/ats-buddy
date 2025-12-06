@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
-import { auth } from '../../services/firebase';
 
 export const VerifyEmailPage: React.FC = () => {
-    const { currentUser, sendVerification, logout } = useAuth();
+    const { currentUser, sendVerification, logout, reloadUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -33,12 +32,13 @@ export const VerifyEmailPage: React.FC = () => {
 
     const handleResendEmail = async () => {
         if (cooldown > 0) return;
+        if (!currentUser?.email) return setError('No email found for user.');
 
         try {
             setMessage('');
             setError('');
             setLoading(true);
-            await sendVerification();
+            await sendVerification(currentUser.email);
             setMessage('Verification email sent! Please check your inbox and spam folder.');
             setCooldown(60); // Start 60s cooldown on success
         } catch (err: any) {
@@ -66,19 +66,10 @@ export const VerifyEmailPage: React.FC = () => {
     const handleCheckVerification = async () => {
         try {
             setLoading(true);
-            const user = auth.currentUser;
+            await reloadUser(); // Use the new reloadUser method from context
 
-            console.log('Checking verification for user:', user.email);
-            console.log('Token refreshed. Final status:', user.emailVerified);
-            console.log('Connected to Project ID:', auth.app.options.projectId);
+            console.log('Reloaded user profile.');
 
-            if (user.emailVerified) {
-                console.log('Verified! Redirecting...');
-                window.location.href = '/home';
-            } else {
-                console.log('Still not verified.');
-                setMessage(`Email (${user.email}) not verified yet. Please check your inbox/spam for the link.`);
-            }
         } catch (err) {
             console.error('Error checking verification:', err);
             setError('Failed to check verification status. See console for details.');

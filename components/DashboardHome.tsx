@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Clock, FileText, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import type { SessionSummary } from '../services/firestoreService';
+import type { SessionSummary } from '../services/dbService';
 
 interface DashboardHomeProps {
     sessions: SessionSummary[];

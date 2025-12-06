@@ -7,9 +7,12 @@ import { isDisposableEmail } from '../../services/emailValidationService';
 export const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [newPasswordRequired, setNewPasswordRequired] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, loginWithGoogle } = useAuth();
+    const { login, loginWithGoogle, completeNewPassword } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -18,6 +21,20 @@ export const LoginPage: React.FC = () => {
         try {
             setError('');
             setLoading(true);
+
+            if (newPasswordRequired) {
+                if (newPassword !== confirmNewPassword) {
+                    setLoading(false);
+                    return setError('Passwords do not match');
+                }
+                if (newPassword.length < 6) {
+                    setLoading(false);
+                    return setError('Password must be at least 6 characters');
+                }
+                await completeNewPassword(newPassword);
+                navigate('/wiki');
+                return;
+            }
 
             // 1. Check for disposable email
             const isDisposable = await isDisposableEmail(email);
@@ -28,13 +45,95 @@ export const LoginPage: React.FC = () => {
 
             await login(email, password);
             navigate('/wiki');
-        } catch (err) {
-            setError('Failed to sign in. Please check your credentials.');
-            console.error(err);
+        } catch (err: any) {
+            console.error('Login error full object:', err);
+
+            if (err.name === 'UserNotConfirmedException' || err.code === 'UserNotConfirmedException') {
+                navigate(`/confirm-email?email=${encodeURIComponent(email)}`);
+                return;
+            }
+
+            if (err.name === 'NewPasswordRequired' || err.code === 'NewPasswordRequired') {
+                setNewPasswordRequired(true);
+                setError('Please set a new password for your account.');
+                setLoading(false);
+                return;
+            }
+
+            setError(`Failed to sign in: ${err.message || 'Please check your credentials.'}`);
         } finally {
             setLoading(false);
         }
     };
+
+    if (newPasswordRequired) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden">
+                <div className="max-w-md w-full space-y-8 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 relative z-10">
+                    <div>
+                        <h2 className="mt-2 text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            Set New Password
+                        </h2>
+                        <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+                            Your account requires a new password.
+                        </p>
+                    </div>
+                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm" role="alert">
+                                <span className="block sm:inline">{error}</span>
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                                <input
+                                    id="new-password"
+                                    name="new-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                    placeholder="••••••••"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="confirm-new-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
+                                <input
+                                    id="confirm-new-password"
+                                    name="confirm-new-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    required
+                                    className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow"
+                                    placeholder="••••••••"
+                                    value={confirmNewPassword}
+                                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg"
+                            >
+                                {loading ? (
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                ) : 'Set Password'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden">

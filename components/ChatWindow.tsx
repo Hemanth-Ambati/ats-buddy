@@ -97,14 +97,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ analysisResult, resumeTe
           Resume Assistant
         </h3>
         <div className="flex items-center gap-2">
-          <div className="text-xs text-slate-400 font-medium">Context-aware</div>
+          <div className="text-xs text-slate-400 font-medium mr-4">Context-aware</div>
           {onClose && (
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 text-lg font-bold w-6 h-6 flex items-center justify-center rounded transition-colors"
-              title="Minimize"
+              className="text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-700 p-1 rounded transition-all duration-200"
+              title="Close Chat"
             >
-              _
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           )}
         </div>

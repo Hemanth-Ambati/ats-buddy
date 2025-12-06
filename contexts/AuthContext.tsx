@@ -7,40 +7,55 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
-    User,
-    onAuthStateChanged,
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
+    signIn,
+    signUp,
     signOut,
-    signInWithPopup,
-    sendPasswordResetEmail,
-    updateProfile,
-    updatePassword,
-    confirmPasswordReset,
-    verifyPasswordResetCode,
-    fetchSignInMethodsForEmail,
-    reauthenticateWithCredential,
-    EmailAuthProvider,
-    sendEmailVerification
-} from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
-import { auth, googleProvider, functions } from '../services/firebase';
+    getCurrentUser,
+    fetchUserAttributes,
+    resetPassword as awsResetPassword,
+    confirmResetPassword,
+    updatePassword as awsUpdatePassword,
+    updateUserAttributes,
+    resendSignUpCode,
+    confirmSignUp,
+    confirmSignIn,
+    signInWithRedirect,
+    AuthUser
+} from 'aws-amplify/auth';
+import { Amplify } from 'aws-amplify';
+// @ts-ignore
+import config from '../src/aws-exports';
+
+Amplify.configure(config);
+
+// Define a User type compatible with our app
+export interface User {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    emailVerified: boolean;
+    providerData: { providerId: string }[];
+}
 
 interface AuthContextType {
     currentUser: User | null;
     loading: boolean;
-    signup: (email: string, password: string, name?: string) => Promise<void>;
+    signup: (email: string, password: string, name?: string) => Promise<{ isSignUpComplete: boolean; nextStep: any }>;
     login: (email: string, password: string) => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>; // Not implemented yet in AWS migration
     resetPassword: (email: string) => Promise<void>;
     logout: () => Promise<void>;
     updateName: (name: string) => Promise<void>;
     updateUserPassword: (password: string) => Promise<void>;
-    confirmReset: (oobCode: string, newPassword: string) => Promise<void>;
-    verifyResetCode: (oobCode: string) => Promise<string>;
-    checkEmailExists: (email: string) => Promise<boolean>;
-    reauthenticate: (password: string) => Promise<void>;
-    sendVerification: () => Promise<void>;
+    confirmReset: (username: string, confirmationCode: string, newPassword: string) => Promise<void>;
+    verifyResetCode: (oobCode: string) => Promise<string>; // Not applicable in AWS flow
+    checkEmailExists: (email: string) => Promise<boolean>; // Needs Lambda
+    reauthenticate: (password: string) => Promise<void>; // Not needed in AWS flow usually
+    sendVerification: (username: string) => Promise<void>;
+    confirmEmail: (username: string, code: string) => Promise<void>;
+    reloadUser: () => Promise<void>;
+    completeNewPassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -58,90 +73,157 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setCurrentUser(user);
-            setLoading(false);
-        });
-
-        return unsubscribe;
+        checkUser();
     }, []);
 
-    const signup = async (email: string, password: string, name?: string) => {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        if (name) {
-            await updateProfile(userCredential.user, { displayName: name });
-            // Force refresh user state to reflect the new display name immediately
-            setCurrentUser({ ...userCredential.user, displayName: name });
+    async function checkUser() {
+        try {
+            const user = await getCurrentUser();
+            const attributes = await fetchUserAttributes();
+
+
+            setCurrentUser({
+                uid: user.userId,
+                email: attributes.email || null,
+                displayName: attributes.name || null,
+                photoURL: attributes.picture || null,
+                emailVerified: String(attributes.email_verified) === 'true' || !!attributes['identities'], // Trust external providers (e.g. Google) as verified
+                providerData: [{ providerId: 'password' }] // Default to password for now
+            });
+        } catch (error) {
+            console.error("Check User Error:", error);
+            setCurrentUser(null);
+            // Clear stale session if user check fails (e.g. user deleted in backend)
+            try {
+                await signOut();
+            } catch (e) {
+                // Ignore error during cleanup
+            }
+        } finally {
+            setLoading(false);
         }
+    }
+
+    const signup = async (email: string, password: string, name?: string) => {
+        const { isSignUpComplete, userId, nextStep } = await signUp({
+            username: email,
+            password,
+            options: {
+                userAttributes: {
+                    email,
+                    name,
+                },
+            }
+        });
+        return { isSignUpComplete, nextStep };
     };
 
     const login = async (email: string, password: string) => {
-        await signInWithEmailAndPassword(auth, email, password);
+        try {
+            const { isSignedIn, nextStep } = await signIn({ username: email, password });
+
+            if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
+                throw { name: 'UserNotConfirmedException', code: 'UserNotConfirmedException' };
+            }
+
+            if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
+                // Return a special object or throw a specific error that the UI can catch
+                // to redirect to a "Set New Password" screen.
+                // Since this function returns Promise<void>, we should probably throw.
+                throw {
+                    name: 'NewPasswordRequired',
+                    code: 'NewPasswordRequired',
+                    user: { username: email } // Pass context if needed
+                };
+            }
+
+            await checkUser();
+        } catch (error: any) {
+            console.error("AuthContext Login Error:", error);
+            throw error;
+        }
+    };
+
+    const completeNewPassword = async (password: string) => {
+        // This function is needed to complete the challenge
+        try {
+            await confirmSignIn({ challengeResponse: password });
+            await checkUser();
+        } catch (error) {
+            console.error("Complete New Password Error:", error);
+            throw error;
+        }
     };
 
     const loginWithGoogle = async () => {
-        await signInWithPopup(auth, googleProvider);
+        try {
+            await signInWithRedirect({ provider: 'Google' });
+        } catch (error: any) {
+            console.error("Google Sign In Error:", error);
+            if (error.name === 'UserAlreadyAuthenticatedException') {
+                // If already authenticated (stale session), sign out and try again
+                await signOut();
+                await signInWithRedirect({ provider: 'Google' });
+            } else {
+                throw error;
+            }
+        }
     };
 
     const resetPassword = async (email: string) => {
-        await sendPasswordResetEmail(auth, email);
+        await awsResetPassword({ username: email });
     };
 
     const logout = async () => {
-        await signOut(auth);
+        await signOut();
+        setCurrentUser(null);
     };
 
     const updateName = async (name: string) => {
-        if (auth.currentUser) {
-            await updateProfile(auth.currentUser, { displayName: name });
-            // Force refresh user state
-            setCurrentUser({ ...auth.currentUser, displayName: name });
-        }
+        await updateUserAttributes({
+            userAttributes: {
+                name
+            }
+        });
+        await checkUser();
     };
 
     const updateUserPassword = async (password: string) => {
-        if (auth.currentUser) {
-            await updatePassword(auth.currentUser, password);
-        }
+        // AWS requires old password to update. This flow might need UI changes.
+        // For now, this is a placeholder or we assume re-auth happened.
+        // await awsUpdatePassword({ oldPassword: '...', newPassword: password });
+        console.warn("Update password requires old password in AWS");
     };
 
-    const confirmReset = async (oobCode: string, newPassword: string) => {
-        await confirmPasswordReset(auth, oobCode, newPassword);
+    const confirmReset = async (username: string, confirmationCode: string, newPassword: string) => {
+        await confirmResetPassword({ username, confirmationCode, newPassword });
     };
 
     const verifyResetCode = async (oobCode: string): Promise<string> => {
-        return await verifyPasswordResetCode(auth, oobCode);
+        // AWS doesn't verify code separately from confirm.
+        return oobCode;
     };
 
     const checkEmailExists = async (email: string): Promise<boolean> => {
-        try {
-            // Use Cloud Function to bypass client-side enumeration protection
-            const checkEmail = httpsCallable(functions, 'checkEmailExists');
-            const result = await checkEmail({ email }) as { data: { exists: boolean } };
-            return result.data.exists;
-        } catch (error) {
-            console.error("Error checking email existence:", error);
-            // Fallback to false on error to be safe, or true to allow flow to continue?
-            // If the function fails (e.g. network), we probably want to allow the user to try sending the email anyway.
-            // But the UI logic expects true/false.
-            // Let's return false so the UI shows "No account found" or generic error if we want.
-            // Actually, if the function fails, we might want to assume it exists to not block the user if it's just a network glitch?
-            // But the user specifically wants the check.
-            return false;
-        }
+        // Needs API implementation
+        return false;
     };
 
     const reauthenticate = async (password: string): Promise<void> => {
-        if (auth.currentUser && auth.currentUser.email) {
-            const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
-            await reauthenticateWithCredential(auth.currentUser, credential);
-        }
+        // Not directly applicable
     };
 
-    const sendVerification = async () => {
-        if (auth.currentUser) {
-            await sendEmailVerification(auth.currentUser);
-        }
+    const sendVerification = async (username: string) => {
+        await resendSignUpCode({ username });
+    };
+
+    const confirmEmail = async (username: string, code: string) => {
+        await confirmSignUp({ username, confirmationCode: code });
+        await checkUser();
+    };
+
+    const reloadUser = async () => {
+        await checkUser();
     };
 
     const value = {
@@ -158,7 +240,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verifyResetCode,
         checkEmailExists,
         reauthenticate,
-        sendVerification
+        sendVerification,
+        confirmEmail,
+        reloadUser,
+        completeNewPassword
     };
 
     return (

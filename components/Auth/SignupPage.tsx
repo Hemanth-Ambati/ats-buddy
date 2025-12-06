@@ -39,12 +39,16 @@ export const SignupPage: React.FC = () => {
 
             // 2. Create account with name
             const fullName = `${firstName} ${lastName}`.trim();
-            await signup(email, password, fullName);
+            const { isSignUpComplete, nextStep } = await signup(email, password, fullName);
 
-            // 3. Send verification email
-            await sendVerification();
-
-            navigate('/home');
+            // 3. Handle next steps
+            if (isSignUpComplete) {
+                navigate('/home');
+            } else if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+                navigate(`/confirm-email?email=${encodeURIComponent(email)}`);
+            } else {
+                navigate('/login');
+            }
         } catch (err) {
             setError('Failed to create an account. Email may already be in use.');
             console.error(err);

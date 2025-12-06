@@ -9,7 +9,7 @@ import { analyzeResumeAndJD, analyzeKeywordOnly, analyzeScoreOnly } from '../ser
 import { appendChat, saveAnalysis, updateSessionFields, resetSession, saveSessionToHistory, getLocalSessions, renameSessionInHistory, deleteSessionFromHistory, loadLocalSession } from '../services/sessionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { loadUserSession, saveUserSession, subscribeToUserSessions, loadSessionById, renameUserSession, deleteUserSession, type SessionSummary } from '../services/firestoreService';
+import { loadUserSession, saveUserSession, subscribeToUserSessions, loadSessionById, renameUserSession, deleteUserSession, type SessionSummary } from '../services/dbService';
 import { SessionSidebar } from './SessionSidebar';
 
 export const SessionEditor: React.FC = () => {
@@ -67,6 +67,7 @@ export const SessionEditor: React.FC = () => {
                     if (!localSession) setIsLoading(true);
 
                     const remoteSession = await loadSessionById(currentUser.uid, sessionId);
+
                     if (remoteSession) {
                         setSession(remoteSession);
                         setAnalysisResult(remoteSession.analysis ?? null);
@@ -113,7 +114,13 @@ export const SessionEditor: React.FC = () => {
             }
 
             const timeoutId = setTimeout(() => {
-                saveUserSession(currentUser.uid, { ...session, title });
+                const hasContent = (session.resumeText && session.resumeText.trim().length > 0) ||
+                    (session.jobDescriptionText && session.jobDescriptionText.trim().length > 0) ||
+                    (session.chatHistory && session.chatHistory.length > 0);
+
+                if (hasContent) {
+                    saveUserSession(currentUser.uid, { ...session, title });
+                }
                 saveSessionToHistory({ ...session, title });
             }, 1000);
             return () => clearTimeout(timeoutId);
@@ -186,7 +193,7 @@ export const SessionEditor: React.FC = () => {
 
         setIsLoading(true);
         setError(null);
-        setIsChatVisible(true);
+        // setIsChatVisible(true);
 
         try {
             const result = await analyzeResumeAndJD(
@@ -225,7 +232,7 @@ You can now ask me specific questions about the analysis or request further impr
         if (!session || !session.resumeText || !session.jobDescriptionText) return;
         setIsLoading(true);
         setError(null);
-        setIsChatVisible(true);
+        // setIsChatVisible(true);
         try {
             const result = await analyzeKeywordOnly(
                 session.resumeText,
@@ -247,7 +254,7 @@ You can now ask me specific questions about the analysis or request further impr
         if (!session || !session.resumeText || !session.jobDescriptionText) return;
         setIsLoading(true);
         setError(null);
-        setIsChatVisible(true);
+        // setIsChatVisible(true);
         try {
             const result = await analyzeScoreOnly(
                 session.resumeText,

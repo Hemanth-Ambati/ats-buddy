@@ -6,7 +6,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; requireVerifi
     children,
     requireVerification = true
 }) => {
-    const { currentUser, loading } = useAuth();
+    const { currentUser, loading, reloadUser } = useAuth();
     const [isVerifying, setIsVerifying] = React.useState(false);
 
     React.useEffect(() => {
@@ -14,7 +14,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; requireVerifi
             if (currentUser && !currentUser.emailVerified && requireVerification) {
                 setIsVerifying(true);
                 try {
-                    await currentUser.reload();
+                    await reloadUser();
                     // Force a re-render or update context if needed. 
                     // Note: reload() updates the currentUser object in place, but might not trigger a re-render 
                     // unless we force it or if AuthContext handles it. 

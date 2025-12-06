@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeft } from 'lucide-react';
 
@@ -8,7 +8,8 @@ export const ForgotPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const { resetPassword, checkEmailExists } = useAuth();
+    const { resetPassword } = useAuth();
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -18,18 +19,13 @@ export const ForgotPasswordPage: React.FC = () => {
             setError('');
             setLoading(true);
 
-            // Check if email exists
-            const exists = await checkEmailExists(email);
-            if (!exists) {
-                setError('No account found with this email address.');
-                setLoading(false);
-                return;
-            }
-
+            // AWS Amplify sends a code, so we just trigger it and redirect
             await resetPassword(email);
-            setMessage('Check your inbox for further instructions');
-        } catch (err) {
-            setError('Failed to reset password. Please check if the email is correct.');
+
+            // Redirect to enter the code
+            navigate(`/reset-password?email=${encodeURIComponent(email)}`);
+        } catch (err: any) {
+            setError(err.message || 'Failed to reset password. Please check if the email is correct.');
             console.error(err);
         } finally {
             setLoading(false);

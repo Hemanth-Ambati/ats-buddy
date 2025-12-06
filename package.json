@@ -10,12 +10,16 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-amplify/ui-react": "^6.13.1",
     "@emailjs/browser": "^4.4.1",
     "@google/genai": "^1.29.1",
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
+    "aws-amplify": "^6.15.8",
+    "aws-sdk": "^2.1692.0",
     "docx": "^8.4.0",
-    "firebase": "^12.6.0",
+    "dotenv": "^17.2.3",
+    "firebase-admin": "^13.6.0",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
