@@ -86,8 +86,8 @@
         },
         "Runtime": "nodejs22.x",
         "Layers": [],
-        "Timeout": 120,
-        "MemorySize": 128
+        "Timeout": 300,
+        "MemorySize": 2048
       }
     },
     "LambdaExecutionRole": {

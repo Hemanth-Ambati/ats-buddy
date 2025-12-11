@@ -17,6 +17,7 @@ export const createUser = /* GraphQL */ `mutation CreateUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -43,6 +44,7 @@ export const updateUser = /* GraphQL */ `mutation UpdateUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -69,6 +71,7 @@ export const deleteUser = /* GraphQL */ `mutation DeleteUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -104,6 +107,7 @@ export const createSession = /* GraphQL */ `mutation CreateSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory
@@ -140,6 +144,7 @@ export const updateSession = /* GraphQL */ `mutation UpdateSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory
@@ -176,6 +181,7 @@ export const deleteSession = /* GraphQL */ `mutation DeleteSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory

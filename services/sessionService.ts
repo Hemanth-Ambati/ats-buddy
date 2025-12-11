@@ -186,7 +186,8 @@ export function getLocalSessions(): { sessionId: string; title: string; updatedA
     .map(session => ({
       sessionId: session.sessionId,
       title: session.title || 'Untitled Session',
-      updatedAt: session.updatedAt || new Date().toISOString()
+      updatedAt: session.updatedAt || new Date().toISOString(),
+      hasCoverLetter: !!session.analysis?.coverLetter
     }));
 }
 

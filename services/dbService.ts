@@ -51,10 +51,13 @@ const customUpdateSession = /* GraphQL */ `
   }
 `;
 
-// Custom query to avoid fetching the User object
-const customGetSession = /* GraphQL */ `
-  query GetSession($id: ID!) {
-    getSession(id: $id) {
+// Custom mutation to avoid fetching the User object
+const customCreateSession = /* GraphQL */ `
+  mutation CreateSession(
+    $input: CreateSessionInput!
+    $condition: ModelSessionConditionInput
+  ) {
+    createSession(input: $input, condition: $condition) {
       id
       title
       updatedAt
@@ -69,11 +72,57 @@ const customGetSession = /* GraphQL */ `
   }
 `;
 
+// Custom query to avoid fetching the User object
+const customGetSession = /* GraphQL */ `
+  query GetSession($id: ID!) {
+     getSession(id: $id) {
+      id
+      title
+      updatedAt
+      resumeText
+      jobDescriptionText
+      chatHistory
+      analysis
+      userId
+      createdAt
+      owner
+    }
+  }
+`;
+
+// Custom mutation to avoid fetching unnecessary User fields which might cause auth errors
+const customUpdateUser = /* GraphQL */ `
+  mutation UpdateUser(
+    $input: UpdateUserInput!
+    $condition: ModelUserConditionInput
+  ) {
+    updateUser(input: $input, condition: $condition) {
+      id
+      profileResume
+      lastUpdated
+    }
+  }
+`;
+
+const customCreateUser = /* GraphQL */ `
+  mutation CreateUser(
+    $input: CreateUserInput!
+    $condition: ModelUserConditionInput
+  ) {
+    createUser(input: $input, condition: $condition) {
+      id
+      email
+      lastUpdated
+    }
+  }
+`;
+
 export interface SessionSummary {
     sessionId: string;
     title: string;
     updatedAt: string;
     preview?: string;
+    hasCoverLetter?: boolean;
 }
 
 /**
@@ -88,7 +137,7 @@ async function ensureUserExists(userId: string, email?: string | null, displayNa
 
         if (!data.getUser) {
             await client.graphql({
-                query: createUser,
+                query: customCreateUser,
                 variables: {
                     input: {
                         id: userId,
@@ -141,7 +190,7 @@ export async function saveUserSession(userId: string, session: SessionState) {
                 // Note: If update failed because of something other than "not found", create might also fail.
                 try {
                     await client.graphql({
-                        query: createSession,
+                        query: customCreateSession,
                         variables: { input: sessionInput }
                     });
                 } catch (createErr: any) {
@@ -281,121 +330,184 @@ export async function loadSessionById(userId: string, sessionId: string): Promis
 }
 
 function mapSessionFromGraphQL(item: any): SessionState {
+    return {
+        sessionId: item.id,
+        title: item.title || 'Untitled Session',
+        resumeText: item.resumeText || '',
+        jobDescriptionText: item.jobDescriptionText || '',
+        chatHistory: item.chatHistory ? JSON.parse(item.chatHistory) : [],
+        updatedAt: item.updatedAt,
+        correlationId: '', // Default to empty, will be regenerated if needed
+        analysis: item.analysis ? JSON.parse(item.analysis) : undefined
+    };
+}
+
+/**
+ * Subscribes to the user's sessions list for real-time updates.
+ */
+export function subscribeToUserSessions(userId: string, callback: (sessions: SessionSummary[]) => void): () => void {
+    let unsubscribeCreate: any;
+    let unsubscribeUpdate: any;
+    let unsubscribeDelete: any;
+
+    const fetchAndNotify = async () => {
+        try {
+            const { data } = await client.graphql({
+                query: sessionsByUserIdAndUpdatedAt,
+                variables: {
+                    userId: userId,
+                    sortDirection: ModelSortDirection.DESC
+                }
+            });
+
+            const sessions = data.sessionsByUserIdAndUpdatedAt.items.map((item: any) => {
+                let hasCoverLetter = false;
+                try {
+                    if (item.analysis) {
+                        const analysis = JSON.parse(item.analysis);
+                        if (analysis && analysis.coverLetter) {
+                            hasCoverLetter = true;
+                        }
+                    }
+                } catch (e) {
+                    // ignore parse error
+                }
+
                 return {
                     sessionId: item.id,
                     title: item.title || 'Untitled Session',
-                    resumeText: item.resumeText || '',
-                    jobDescriptionText: item.jobDescriptionText || '',
-                    chatHistory: item.chatHistory ? JSON.parse(item.chatHistory) : [],
                     updatedAt: item.updatedAt,
-                    correlationId: '', // Default to empty, will be regenerated if needed
-                    analysis: item.analysis ? JSON.parse(item.analysis) : undefined
+                    preview: item.resumeText ? item.resumeText.substring(0, 150) + '...' : 'No preview available',
+                    hasCoverLetter
                 };
-            }
+            });
 
-            /**
-             * Subscribes to the user's sessions list for real-time updates.
-             */
-            export function subscribeToUserSessions(userId: string, callback: (sessions: SessionSummary[]) => void): () => void {
-                let unsubscribeCreate: any;
-                let unsubscribeUpdate: any;
-                let unsubscribeDelete: any;
+            callback(sessions);
+        } catch (error) {
+            console.error('Error fetching sessions:', JSON.stringify(error, null, 2));
+        }
+    };
 
-                const fetchAndNotify = async () => {
-                    try {
-                        const { data } = await client.graphql({
-                            query: sessionsByUserIdAndUpdatedAt,
-                            variables: {
-                                userId: userId,
-                                sortDirection: ModelSortDirection.DESC
-                            }
-                        });
+    // Initial fetch
+    fetchAndNotify();
 
-                        const sessions = data.sessionsByUserIdAndUpdatedAt.items.map((item: any) => ({
-                            sessionId: item.id,
-                            title: item.title || 'Untitled Session',
-                            updatedAt: item.updatedAt,
-                            preview: item.resumeText ? item.resumeText.substring(0, 150) + '...' : 'No preview available'
-                        }));
+    // Subscribe to changes (Owner auth automatically filters these)
+    try {
+        const createSub = client.graphql({ query: onCreateSession }).subscribe({
+            next: () => fetchAndNotify(),
+            error: (err: any) => console.error('Create sub error', JSON.stringify(err, null, 2))
+        });
+        const updateSub = client.graphql({ query: onUpdateSession }).subscribe({
+            next: () => fetchAndNotify(),
+            error: (err: any) => console.error('Update sub error', JSON.stringify(err, null, 2))
+        });
+        const deleteSub = client.graphql({ query: onDeleteSession }).subscribe({
+            next: () => fetchAndNotify(),
+            error: (err: any) => console.error('Delete sub error', JSON.stringify(err, null, 2))
+        });
 
-                        callback(sessions);
-                    } catch (error) {
-                        console.error('Error fetching sessions:', JSON.stringify(error, null, 2));
-                    }
-                };
+        unsubscribeCreate = createSub;
+        unsubscribeUpdate = updateSub;
+        unsubscribeDelete = deleteSub;
 
-                // Initial fetch
-                fetchAndNotify();
+    } catch (error) {
+        console.error('Error setting up subscriptions:', JSON.stringify(error, null, 2));
+    }
 
-                // Subscribe to changes (Owner auth automatically filters these)
-                try {
-                    const createSub = client.graphql({ query: onCreateSession }).subscribe({
-                        next: () => fetchAndNotify(),
-                        error: (err: any) => console.error('Create sub error', JSON.stringify(err, null, 2))
-                    });
-                    const updateSub = client.graphql({ query: onUpdateSession }).subscribe({
-                        next: () => fetchAndNotify(),
-                        error: (err: any) => console.error('Update sub error', JSON.stringify(err, null, 2))
-                    });
-                    const deleteSub = client.graphql({ query: onDeleteSession }).subscribe({
-                        next: () => fetchAndNotify(),
-                        error: (err: any) => console.error('Delete sub error', JSON.stringify(err, null, 2))
-                    });
+    return () => {
+        if (unsubscribeCreate) unsubscribeCreate.unsubscribe();
+        if (unsubscribeUpdate) unsubscribeUpdate.unsubscribe();
+        if (unsubscribeDelete) unsubscribeDelete.unsubscribe();
+    };
+}
 
-                    unsubscribeCreate = createSub;
-                    unsubscribeUpdate = updateSub;
-                    unsubscribeDelete = deleteSub;
+/**
+ * Retrieves the password history for a user.
+ */
+export async function getPasswordHistory(userId: string): Promise<string[]> {
+    try {
+        const { data } = await client.graphql({
+            query: getUser,
+            variables: { id: userId }
+        });
 
-                } catch (error) {
-                    console.error('Error setting up subscriptions:', JSON.stringify(error, null, 2));
-                }
+        return data.getUser?.passwordHistory?.filter((p): p is string => p !== null) || [];
+    } catch (error) {
+        console.error('Error fetching password history:', JSON.stringify(error, null, 2));
+        return [];
+    }
+}
 
-                return () => {
-                    if (unsubscribeCreate) unsubscribeCreate.unsubscribe();
-                    if (unsubscribeUpdate) unsubscribeUpdate.unsubscribe();
-                    if (unsubscribeDelete) unsubscribeDelete.unsubscribe();
-                };
-            }
+/**
+ * Adds a password hash to the user's history.
+ */
+export async function addToPasswordHistory(userId: string, passwordHash: string) {
+    try {
+        const history = await getPasswordHistory(userId);
 
-            /**
-             * Retrieves the password history for a user.
-             */
-            export async function getPasswordHistory(userId: string): Promise<string[]> {
-                try {
-                    const { data } = await client.graphql({
-                        query: getUser,
-                        variables: { id: userId }
-                    });
+        history.push(passwordHash);
 
-                    return data.getUser?.passwordHistory?.filter((p): p is string => p !== null) || [];
-                } catch (error) {
-                    console.error('Error fetching password history:', JSON.stringify(error, null, 2));
-                    return [];
+        // Keep only last 5
+        const newHistory = history.length > 5 ? history.slice(history.length - 5) : history;
+
+        await client.graphql({
+            query: updateUser,
+            variables: {
+                input: {
+                    id: userId,
+                    passwordHistory: newHistory
                 }
             }
+        });
+    } catch (error) {
+        console.error('Error updating password history:', JSON.stringify(error, null, 2));
+    }
+}
 
-            /**
-             * Adds a password hash to the user's history.
-             */
-            export async function addToPasswordHistory(userId: string, passwordHash: string) {
-                try {
-                    const history = await getPasswordHistory(userId);
+/**
+ * Saves the user's profile resume.
+ */
+export async function saveUserProfileResume(userId: string, resumeText: string) {
+    try {
+        await ensureUserExists(userId);
 
-                    history.push(passwordHash);
-
-                    // Keep only last 5
-                    const newHistory = history.length > 5 ? history.slice(history.length - 5) : history;
-
-                    await client.graphql({
-                        query: updateUser,
-                        variables: {
-                            input: {
-                                id: userId,
-                                passwordHistory: newHistory
-                            }
-                        }
-                    });
-                } catch (error) {
-                    console.error('Error updating password history:', JSON.stringify(error, null, 2));
+        await client.graphql({
+            query: customUpdateUser,
+            variables: {
+                input: {
+                    id: userId,
+                    profileResume: resumeText,
+                    lastUpdated: new Date().toISOString()
                 }
             }
+        });
+    } catch (error) {
+        console.error('Error saving profile resume:', JSON.stringify(error, null, 2));
+        throw error;
+    }
+}
+
+/**
+ * Retrieves the user's profile resume.
+ */
+const getProfileResumeQuery = /* GraphQL */ `
+  query GetUser($id: ID!) {
+    getUser(id: $id) {
+      profileResume
+    }
+  }
+`;
+
+export async function getUserProfileResume(userId: string): Promise<string | null> {
+    try {
+        const result = await client.graphql({
+            query: getProfileResumeQuery,
+            variables: { id: userId }
+        }) as any;
+
+        return result.data.getUser?.profileResume || null;
+    } catch (error) {
+        console.error('Error fetching profile resume:', JSON.stringify(error, null, 2));
+        return null;
+    }
+}

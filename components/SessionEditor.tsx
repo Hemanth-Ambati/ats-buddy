@@ -9,7 +9,7 @@ import { analyzeResumeAndJD, analyzeKeywordOnly, analyzeScoreOnly } from '../ser
 import { appendChat, saveAnalysis, updateSessionFields, resetSession, saveSessionToHistory, getLocalSessions, renameSessionInHistory, deleteSessionFromHistory, loadLocalSession } from '../services/sessionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { loadUserSession, saveUserSession, subscribeToUserSessions, loadSessionById, renameUserSession, deleteUserSession, type SessionSummary } from '../services/dbService';
+import { loadUserSession, saveUserSession, subscribeToUserSessions, loadSessionById, renameUserSession, deleteUserSession, getUserProfileResume, type SessionSummary } from '../services/dbService';
 import { SessionSidebar } from './SessionSidebar';
 
 export const SessionEditor: React.FC = () => {
@@ -186,7 +186,20 @@ export const SessionEditor: React.FC = () => {
                 };
             });
         }
+
+
     }, [analysisResult]);
+
+    const handleLoadProfile = React.useCallback(async () => {
+        if (!currentUser) return null;
+        try {
+            return await getUserProfileResume(currentUser.uid);
+        } catch (error) {
+            console.error("Failed to load profile resume", error);
+            setError("Failed to load profile resume");
+            return null;
+        }
+    }, [currentUser]);
 
     const handleAnalyze = React.useCallback(async () => {
         if (!session || !session.resumeText || !session.jobDescriptionText) return;
@@ -306,6 +319,8 @@ You can now ask me specific questions about the analysis or request further impr
                 onDeleteSession={handleDeleteSession}
                 onHome={() => navigate('/home')}
                 onWiki={() => navigate('/wiki')}
+                onCoverLetter={() => navigate('/cover-letter')}
+                onLanding={() => navigate('/')}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 width={sidebarWidth}
@@ -333,6 +348,7 @@ You can now ask me specific questions about the analysis or request further impr
                                 onAnalyze={handleAnalyze}
                                 onKeywordAnalyze={handleKeywordAnalyze}
                                 onScoreAnalyze={handleScoreAnalyze}
+                                onLoadProfile={handleLoadProfile}
                                 isLoading={isLoading}
                             />
                             {isChatVisible && (

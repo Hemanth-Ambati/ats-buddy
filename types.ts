@@ -55,6 +55,30 @@ export interface OptimizedResumeDraft {
 }
 
 /**
+ * Output from Cover Letter Agent.
+ */
+export interface CoverLetterVersion {
+  id: string;
+  markdown: string;
+  createdAt: number;
+  style?: string;
+}
+
+export interface CoverLetter {
+  markdown: string;       // Current selected version content
+  versions?: CoverLetterVersion[]; // History of versions
+  selectedId?: string;    // ID of currently selected version
+}
+
+/**
+ * Request payload for generating a cover letter.
+ */
+export interface CoverLetterRequest {
+  sessionId: string;
+  source: 'original' | 'optimized';
+}
+
+/**
  * Agent stage identifiers.
  * Each stage represents one agent in the pipeline.
  */
@@ -63,6 +87,7 @@ export type AgentStageName =
   | 'keywordAnalysis'
   | 'scoring'
   | 'optimiser'
+  | 'coverLetter'
   | 'formatter';
 
 /**
@@ -100,6 +125,7 @@ export interface AnalysisResult {
   keywordAnalysis: AgentStage<KeywordAnalysis>;
   scoring: AgentStage<ScoreBreakdown>;
   optimiser: AgentStage<OptimizedResumeDraft>;
+  coverLetter?: AgentStage<CoverLetter>;
   formatter: AgentStage<{ markdown: string }>; // Legacy: merged into optimiser
 }
 

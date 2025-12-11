@@ -14,6 +14,7 @@ export const getUser = /* GraphQL */ `query GetUser($id: ID!) {
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -39,6 +40,7 @@ export const listUsers = /* GraphQL */ `query ListUsers(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory
@@ -67,6 +69,7 @@ export const getSession = /* GraphQL */ `query GetSession($id: ID!) {
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory

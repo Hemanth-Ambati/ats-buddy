@@ -17,6 +17,7 @@ export const onCreateUser = /* GraphQL */ `subscription OnCreateUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -43,6 +44,7 @@ export const onUpdateUser = /* GraphQL */ `subscription OnUpdateUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -69,6 +71,7 @@ export const onDeleteUser = /* GraphQL */ `subscription OnDeleteUser(
     email
     displayName
     photoURL
+    profileResume
     lastSessionId
     lastUpdated
     passwordHistory
@@ -104,6 +107,7 @@ export const onCreateSession = /* GraphQL */ `subscription OnCreateSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory
@@ -140,6 +144,7 @@ export const onUpdateSession = /* GraphQL */ `subscription OnUpdateSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory
@@ -176,6 +181,7 @@ export const onDeleteSession = /* GraphQL */ `subscription OnDeleteSession(
       email
       displayName
       photoURL
+      profileResume
       lastSessionId
       lastUpdated
       passwordHistory

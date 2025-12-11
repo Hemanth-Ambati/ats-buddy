@@ -24,6 +24,7 @@ import type {
   KeywordAnalysis,
   OptimizedResumeDraft,
   ScoreBreakdown,
+  CoverLetter,
 } from '../types';
 import { log } from './logger';
 
@@ -77,6 +78,18 @@ const optimiserSchema = {
     rationale: { type: Type.STRING },
   },
   required: ['markdown', 'rationale'],
+};
+
+/**
+ * Schema for Cover Letter Agent output
+ * Generates a structured cover letter in markdown.
+ */
+const coverLetterSchema = {
+  type: Type.OBJECT,
+  properties: {
+    markdown: { type: Type.STRING },
+  },
+  required: ['markdown'],
 };
 
 /**
@@ -332,4 +345,124 @@ JOB DESCRIPTION: \n${jobDescription}\n\nRESUME: \n${resume}`;
   result = { ...result, keywordAnalysis, scoring };
   log({ level: 'info', message: 'ATS score analysis complete', sessionId, correlationId, extra: { score: scoring.output?.overall } });
   return result;
+}
+
+// Styles for variations
+const STYLES = [
+  {
+    name: "Professional & Direct",
+    prompt: "Adopt a standard, polished professional tone. Focus on clearly matching skills to the job requirements. Be concise and formal."
+  },
+  {
+    name: "Achievement Focused",
+    prompt: "Adopt a confident, results-oriented tone. Highlight specific metrics, achievements, and the rapid impact the candidate can make. Be bold."
+  },
+  {
+    name: "Passionate & Cultural",
+    prompt: "Adopt a softer, narrative tone. Focus on the candidate's passion for the mission, cultural fit, and personal connection to the industry. Be engaging."
+  }
+];
+
+export async function generateCoverLetterVariations(
+  resumeText: string,
+  jdText: string,
+  sessionId: string
+): Promise<{ status: 'completed' | 'failed', outputs: { markdown: string, style: string }[], error?: string }> {
+  try {
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const variationPromises = STYLES.map(async (style) => {
+      const prompt = `
+        You are an expert career coach and professional writer.
+        Task: Write a cover letter for a candidate based on their Resume and a Job Description.
+
+        STYLE INSTRUCTION: ${style.prompt}
+
+        REQUIREMENTS:
+        1. **Format**: Standard Business Letter.
+        - **Header**: Candidate Name (Pascal Case, e.g. "John Doe"), Email, Phone. Do NOT include Portfolio or LinkedIn links.
+        - **Date**: ${today}.
+        - **Recipient**: Hiring Manager or specific name (from JD), Company Name.
+        - **Salutation**: "Dear [Hiring Manager's Name/Team],"
+        - **Body**: 3-4 distinct paragraphs.
+        - **Sign-off**: "Sincerely," followed by Candidate Name.
+        2. **Length**: STRICTLY UNDER 300 WORDS. Must fit on a single page.
+        3. **Content**:
+        - Analyze the Resume and Match it to the top 3 hard skills in the JD.
+        - Do not use placeholders like "[Company Name]" if you can find the name. If unknown, use "Hiring Manager".
+        - Do not invent facts.
+
+        RESUME:
+        ${resumeText.substring(0, 3000)}
+
+        JOB DESCRIPTION:
+        ${jdText.substring(0, 3000)}
+        
+        OUTPUT FORMAT:
+        Return ONLY the markdown text of the letter. No introductory text.
+        IMPORTANT: Use double newlines (\n\n) between sections and paragraphs to ensure proper Markdown rendering. Do NOT produce a single block of text.
+        `;
+
+      const result = await generateStructured<CoverLetter>(prompt, coverLetterSchema, 0.7);
+      const text = result.markdown;
+      return {
+        markdown: text,
+        style: style.name
+      };
+    });
+
+    const results = await Promise.all(variationPromises);
+
+    return {
+      status: 'completed',
+      outputs: results
+    };
+
+  } catch (error) {
+    console.error("Cover Letter Variation Error:", error);
+    return {
+      status: 'failed',
+      outputs: [],
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+
+export async function generateCoverLetter(
+  resume: string,
+  jobDescription: string,
+  sessionId: string
+): Promise<AgentStage<CoverLetter>> {
+  const correlationId = crypto.randomUUID();
+  log({ level: 'info', message: 'Starting cover letter generation', sessionId, correlationId });
+
+  return runStage('coverLetter', async () => {
+    const prompt = `You are an expert Cover Letter Writer. Write a professional cover letter for the candidate based on their Resume and the Job Description.
+
+JOB DESCRIPTION:
+${jobDescription}
+
+RESUME:
+${resume}
+
+REQUIREMENTS:
+1. **Format**: Standard Business Letter.
+   - **Header**: Candidate Name, Email, Phone, LinkedIn/Portfolio (extract from resume).
+   - **Date**: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.
+   - **Recipient**: Hiring Manager or specific name (from JD), Company Name.
+   - **Salutation**: "Dear [Hiring Manager's Name/Team],"
+   - **Body**: 3-4 distinct paragraphs.
+   - **Sign-off**: "Sincerely,\n\nCandidate Name"
+2. **Tone**: Professional, enthusiastic, and confident.
+3. **Content**:
+   - **Intro**: Value proposition and role interest.
+   - **Body**: Connect specific resume achievements to JD requirements.
+   - **Conclusion**: Call to action (interview request).
+4. **Formatting**: 
+   - Use double newlines (\n\n) between paragraphs.
+   - Do NOT produce one single block of text.
+   - Output in Markdown.`;
+
+    return generateStructured<CoverLetter>(prompt, coverLetterSchema, 0.4);
+  });
 }

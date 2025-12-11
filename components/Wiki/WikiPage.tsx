@@ -78,6 +78,45 @@ ATS algorithms look for:
         `
     },
     {
+        id: 'cover-letters',
+        title: 'Cover Letters',
+        content: `
+# AI Cover Letter Generator
+
+ATS Buddy doesn't just fix your resume—it writes tailored cover letters for you.
+
+## 3 Unique Version Styles
+
+Every time you click **Generate**, the AI simultaneously creates **3 distinct versions** of your cover letter so you can choose the best fit:
+
+1.  **Professional & Direct**
+    - A polished, standard business letter.
+    - Focuses on clarity, professionalism, and concise matching of skills.
+    - Best for: Corporate jobs, large enterprises.
+
+2.  **Achievement Focused**
+    - A bold, metrics-driven approach.
+    - Highlights your biggest wins and the impact you can make immediately.
+    - Best for: Sales, Leadership, and specialized high-impact roles.
+
+3.  **Passionate & Cultural**
+    - A narrative, storytelling style.
+    - Focuses on your "why"—your mission alignment and cultural fit.
+    - Best for: Startups, Non-profits, and mission-driven companies.
+
+## Smart Features
+
+### Side-by-Side Comparison
+You can view all 3 drafted versions side-by-side. Read the previews and click **"Version [Style]"** to select the one you want to finalize.
+
+### Safe Delete
+Managing your cover letters is worry-free.
+- **"Delete Cover Letter"** only removes the draft letters.
+- It **does NOT** delete your Optimized Resume or Chat History.
+- You can always regenerate a new set of letters for that session later.
+        `
+    },
+    {
         id: 'faq',
         title: 'FAQ',
         content: `

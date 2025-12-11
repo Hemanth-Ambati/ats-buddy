@@ -9,6 +9,7 @@ interface InputSectionProps {
   onAnalyze: () => void;
   onKeywordAnalyze?: () => void;
   onScoreAnalyze?: () => void;
+  onLoadProfile?: () => Promise<string | null>;
   isLoading: boolean;
 }
 
@@ -27,6 +28,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
   onAnalyze,
   onKeywordAnalyze,
   onScoreAnalyze,
+  onLoadProfile,
   isLoading,
 }) => {
   const [isParsing, setIsParsing] = React.useState(false);
@@ -70,9 +72,24 @@ export const InputSection: React.FC<InputSectionProps> = ({
 
       <div className="flex flex-col gap-6">
         <div>
-          <label htmlFor="resume" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Resume (paste or upload)
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label htmlFor="resume" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Resume (paste or upload)
+            </label>
+            {onLoadProfile && (
+              <button
+                onClick={async () => {
+                  const text = await onLoadProfile();
+                  if (text) setResumeText(text);
+                }}
+                className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-medium flex items-center gap-1 transition-colors"
+                type="button"
+              >
+                <PLensIcon className="w-3 h-3" />
+                Load from Profile
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-4 mb-2">
             <input

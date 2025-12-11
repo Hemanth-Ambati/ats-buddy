@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, User, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Lock, Save, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import { emailService } from '../../services/emailService';
-import { getPasswordHistory, addToPasswordHistory } from '../../services/dbService';
+import { getPasswordHistory, addToPasswordHistory, getUserProfileResume, saveUserProfileResume } from '../../services/dbService';
+import { parseFile } from '../../services/fileParser';
 
 export const ProfilePage: React.FC = () => {
     const { currentUser, updateName, updateUserPassword, reauthenticate } = useAuth();
@@ -11,6 +12,8 @@ export const ProfilePage: React.FC = () => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [resumeText, setResumeText] = useState('');
+    const [isParsing, setIsParsing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -20,6 +23,44 @@ export const ProfilePage: React.FC = () => {
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    // Load saved resume on mount
+    React.useEffect(() => {
+        const loadResume = async () => {
+            if (currentUser?.uid) {
+                try {
+                    const savedResume = await getUserProfileResume(currentUser.uid);
+                    if (savedResume) {
+                        setResumeText(savedResume);
+                    }
+                } catch (error) {
+                    console.error('Failed to load resume:', error);
+                }
+            }
+        };
+        loadResume();
+    }, [currentUser]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsParsing(true);
+        try {
+            const text = await parseFile(file);
+            if (text && text.trim()) {
+                setResumeText(text);
+                setMessage({ type: 'success', text: 'Resume parsed successfully' });
+            } else {
+                setMessage({ type: 'error', text: 'No text could be extracted from the file.' });
+            }
+        } catch (err) {
+            console.error('File parse error:', err);
+            setMessage({ type: 'error', text: 'Failed to parse resume file.' });
+        } finally {
+            setIsParsing(false);
+            e.target.value = ''; // Reset input
+        }
     };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -75,6 +116,10 @@ export const ProfilePage: React.FC = () => {
                     // Add to history on success
                     await addToPasswordHistory(currentUser.uid, newPasswordHash);
                 }
+            }
+
+            if (resumeText) {
+                await saveUserProfileResume(currentUser.uid, resumeText);
             }
 
             if (displayName !== currentUser?.displayName) {
@@ -168,6 +213,72 @@ export const ProfilePage: React.FC = () => {
                                             placeholder="Your Name"
                                         />
                                     </div>
+                                </div>
+                            </div>
+
+                            <hr className="border-slate-200 dark:border-slate-700" />
+
+                            {/* Default Resume */}
+                            <div className="space-y-4">
+                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <FileText size={20} className="text-sky-500" />
+                                    Default Resume
+                                </h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    Save your default resume here to quickly load it for any future optimization.
+                                </p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                id="resume-upload"
+                                                className="hidden"
+                                                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                onChange={handleFileChange}
+                                                disabled={isParsing || loading}
+                                            />
+                                            <label
+                                                htmlFor="resume-upload"
+                                                className={`cursor-pointer inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors ${(isParsing || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                {isParsing ? 'Parsing...' : 'Upload Resume'}
+                                            </label>
+                                        </div>
+                                        {resumeText && (
+                                            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                                <CheckCircle size={16} />
+                                                <span className="text-sm font-medium">Resume on file</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {resumeText && (
+                                        <details className="group">
+                                            <summary className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer hover:text-slate-700 dark:hover:text-slate-200">
+                                                <span>View/Edit parsed text</span>
+                                            </summary>
+                                            <textarea
+                                                value={resumeText}
+                                                onChange={(e) => setResumeText(e.target.value)}
+                                                rows={10}
+                                                className="mt-2 appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow text-sm font-mono"
+                                                placeholder="Paste your resume content here..."
+                                                disabled={loading}
+                                            />
+                                        </details>
+                                    )}
+
+                                    {!resumeText && (
+                                        <textarea
+                                            value={resumeText}
+                                            onChange={(e) => setResumeText(e.target.value)}
+                                            rows={10}
+                                            className="appearance-none block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent dark:bg-slate-700 dark:text-white transition-shadow text-sm font-mono"
+                                            placeholder="Paste your resume content here or upload a file..."
+                                            disabled={loading}
+                                        />
+                                    )}
                                 </div>
                             </div>
 

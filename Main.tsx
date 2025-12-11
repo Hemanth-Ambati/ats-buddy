@@ -23,6 +23,7 @@ import { Dashboard } from './components/Dashboard';
 import { SessionEditor } from './components/SessionEditor';
 import { LandingPage } from './components/LandingPage';
 import { WikiPage } from './components/Wiki/WikiPage';
+import { CoverLetterPage } from './components/CoverLetterPage';
 import { VerifyEmailPage } from './components/Auth/VerifyEmailPage';
 import { ConfirmEmailPage } from './components/Auth/ConfirmEmailPage';
 import { AuthActionPage } from './components/Auth/AuthActionPage';
@@ -173,6 +174,26 @@ const AnimatedRoutes: React.FC = () => {
             <ProtectedRoute>
               <PageTransition>
                 <WikiPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cover-letter"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <CoverLetterPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cover-letter/:sessionId"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <CoverLetterPage />
               </PageTransition>
             </ProtectedRoute>
           }

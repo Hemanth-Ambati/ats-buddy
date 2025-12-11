@@ -192,6 +192,7 @@ export default function UserCreateForm(props) {
     email: "",
     displayName: "",
     photoURL: "",
+    profileResume: "",
     lastSessionId: "",
     lastUpdated: "",
     passwordHistory: [],
@@ -201,6 +202,9 @@ export default function UserCreateForm(props) {
     initialValues.displayName
   );
   const [photoURL, setPhotoURL] = React.useState(initialValues.photoURL);
+  const [profileResume, setProfileResume] = React.useState(
+    initialValues.profileResume
+  );
   const [lastSessionId, setLastSessionId] = React.useState(
     initialValues.lastSessionId
   );
@@ -215,6 +219,7 @@ export default function UserCreateForm(props) {
     setEmail(initialValues.email);
     setDisplayName(initialValues.displayName);
     setPhotoURL(initialValues.photoURL);
+    setProfileResume(initialValues.profileResume);
     setLastSessionId(initialValues.lastSessionId);
     setLastUpdated(initialValues.lastUpdated);
     setPasswordHistory(initialValues.passwordHistory);
@@ -228,6 +233,7 @@ export default function UserCreateForm(props) {
     email: [],
     displayName: [],
     photoURL: [],
+    profileResume: [],
     lastSessionId: [],
     lastUpdated: [],
     passwordHistory: [],
@@ -278,6 +284,7 @@ export default function UserCreateForm(props) {
           email,
           displayName,
           photoURL,
+          profileResume,
           lastSessionId,
           lastUpdated,
           passwordHistory,
@@ -346,6 +353,7 @@ export default function UserCreateForm(props) {
               email: value,
               displayName,
               photoURL,
+              profileResume,
               lastSessionId,
               lastUpdated,
               passwordHistory,
@@ -375,6 +383,7 @@ export default function UserCreateForm(props) {
               email,
               displayName: value,
               photoURL,
+              profileResume,
               lastSessionId,
               lastUpdated,
               passwordHistory,
@@ -404,6 +413,7 @@ export default function UserCreateForm(props) {
               email,
               displayName,
               photoURL: value,
+              profileResume,
               lastSessionId,
               lastUpdated,
               passwordHistory,
@@ -422,6 +432,36 @@ export default function UserCreateForm(props) {
         {...getOverrideProps(overrides, "photoURL")}
       ></TextField>
       <TextField
+        label="Profile resume"
+        isRequired={false}
+        isReadOnly={false}
+        value={profileResume}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              email,
+              displayName,
+              photoURL,
+              profileResume: value,
+              lastSessionId,
+              lastUpdated,
+              passwordHistory,
+            };
+            const result = onChange(modelFields);
+            value = result?.profileResume ?? value;
+          }
+          if (errors.profileResume?.hasError) {
+            runValidationTasks("profileResume", value);
+          }
+          setProfileResume(value);
+        }}
+        onBlur={() => runValidationTasks("profileResume", profileResume)}
+        errorMessage={errors.profileResume?.errorMessage}
+        hasError={errors.profileResume?.hasError}
+        {...getOverrideProps(overrides, "profileResume")}
+      ></TextField>
+      <TextField
         label="Last session id"
         isRequired={false}
         isReadOnly={false}
@@ -433,6 +473,7 @@ export default function UserCreateForm(props) {
               email,
               displayName,
               photoURL,
+              profileResume,
               lastSessionId: value,
               lastUpdated,
               passwordHistory,
@@ -464,6 +505,7 @@ export default function UserCreateForm(props) {
               email,
               displayName,
               photoURL,
+              profileResume,
               lastSessionId,
               lastUpdated: value,
               passwordHistory,
@@ -489,6 +531,7 @@ export default function UserCreateForm(props) {
               email,
               displayName,
               photoURL,
+              profileResume,
               lastSessionId,
               lastUpdated,
               passwordHistory: values,

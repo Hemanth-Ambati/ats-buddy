@@ -7,12 +7,14 @@ interface DashboardHomeProps {
     sessions: SessionSummary[];
     onNewSession: () => void;
     onSelectSession: (sessionId: string) => void;
+    onCoverLetter?: () => void;
 }
 
 export const DashboardHome: React.FC<DashboardHomeProps> = ({
     sessions,
     onNewSession,
     onSelectSession,
+    onCoverLetter,
 }) => {
     const { currentUser } = useAuth();
 
@@ -20,7 +22,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Good morning';
-        if (hour < 18) return 'Good afternoon';
+        if (hour > 12 && hour < 18) return 'Good afternoon';
         return 'Good evening';
     };
 
@@ -29,7 +31,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             {/* Welcome Section */}
             <div className="space-y-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-                    {getGreeting()}, {currentUser?.displayName?.split(' ')[0] || 'there'}!
+                    {getGreeting()}, {currentUser?.displayName?.split(' ')[0] ? currentUser.displayName.split(' ')[0].charAt(0).toUpperCase() + currentUser.displayName.split(' ')[0].slice(1).toLowerCase() : 'there'}!
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400 text-lg">
                     Ready to land your next dream job?
@@ -49,7 +51,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                         <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
                             <Plus size={24} />
                         </div>
-                        <h3 className="text-2xl font-bold mb-2">New Optimization</h3>
+                        <h3 className="text-2xl font-bold mb-2">New Optimizer</h3>
                         <p className="text-sky-100 mb-6 max-w-xs">
                             Start a fresh analysis with a new resume and job description.
                         </p>
@@ -59,17 +61,26 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                     </div>
                 </button>
 
-                <div className="p-8 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div className="bg-emerald-100 dark:bg-emerald-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400">
-                        <FileText size={24} />
+                <button
+                    onClick={() => { if (onCoverLetter) onCoverLetter(); }}
+                    className="group relative overflow-hidden p-8 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-left"
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <FileText size={120} />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                        {sessions.length} Saved Resumes
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 mb-6">
-                        You have {sessions.length} optimized resumes saved in your history.
-                    </p>
-                </div>
+                    <div className="relative z-10">
+                        <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
+                            <FileText size={24} />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">Cover Letters</h3>
+                        <p className="text-fuchsia-100 mb-6 max-w-xs">
+                            Create and manage tailored cover letters for your job applications.
+                        </p>
+                        <span className="inline-flex items-center font-medium bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                            Manage Letters <ArrowRight size={16} className="ml-2" />
+                        </span>
+                    </div>
+                </button>
             </div>
 
             {/* Recent Sessions */}

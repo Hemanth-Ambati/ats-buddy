@@ -26,6 +26,7 @@ export declare type UserUpdateFormInputValues = {
     email?: string;
     displayName?: string;
     photoURL?: string;
+    profileResume?: string;
     lastSessionId?: string;
     lastUpdated?: string;
     passwordHistory?: string[];
@@ -34,6 +35,7 @@ export declare type UserUpdateFormValidationValues = {
     email?: ValidationFunction<string>;
     displayName?: ValidationFunction<string>;
     photoURL?: ValidationFunction<string>;
+    profileResume?: ValidationFunction<string>;
     lastSessionId?: ValidationFunction<string>;
     lastUpdated?: ValidationFunction<string>;
     passwordHistory?: ValidationFunction<string>;
@@ -44,6 +46,7 @@ export declare type UserUpdateFormOverridesProps = {
     email?: PrimitiveOverrideProps<TextFieldProps>;
     displayName?: PrimitiveOverrideProps<TextFieldProps>;
     photoURL?: PrimitiveOverrideProps<TextFieldProps>;
+    profileResume?: PrimitiveOverrideProps<TextFieldProps>;
     lastSessionId?: PrimitiveOverrideProps<TextFieldProps>;
     lastUpdated?: PrimitiveOverrideProps<TextFieldProps>;
     passwordHistory?: PrimitiveOverrideProps<TextFieldProps>;

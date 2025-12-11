@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home, Book } from 'lucide-react';
+import { Plus, MessageSquare, Edit2, Check, X, Trash2, GripVertical, Calendar, AlertTriangle, PanelLeftClose, Home, Book, FileText, Mail } from 'lucide-react';
 import type { SessionSummary } from '../services/dbService';
 
 interface SessionSidebarProps {
@@ -11,10 +11,13 @@ interface SessionSidebarProps {
     onDeleteSession: (sessionId: string) => void;
     onHome: () => void;
     onWiki: () => void;
+    onCoverLetter: () => void;
+    onLanding?: () => void;
     isOpen: boolean;
     onToggle: () => void;
     width: number;
     setWidth: (width: number) => void;
+    listTitle?: string;
 }
 
 export const SessionSidebar: React.FC<SessionSidebarProps> = ({
@@ -26,10 +29,13 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     onDeleteSession,
     onHome,
     onWiki,
+    onCoverLetter,
+    onLanding,
     isOpen,
     onToggle,
     width,
-    setWidth
+    setWidth,
+    listTitle = "Chats"
 }) => {
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [editValue, setEditValue] = React.useState('');
@@ -180,10 +186,32 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                         <Book size={18} />
                         Wiki
                     </button>
+                    <button
+                        onClick={onCoverLetter}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        <FileText size={18} />
+                        Cover Letters
+                    </button>
+                    {onLanding && (
+                        <button
+                            onClick={onLanding}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        >
+                            <div className="flex items-center justify-center w-[18px]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="2" x2="22" y1="12" y2="12" />
+                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                </svg>
+                            </div>
+                            Landing Page
+                        </button>
+                    )}
                 </div>
 
                 <div className="px-4 py-2 flex justify-between items-center bg-transparent">
-                    <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chats</h2>
+                    <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{listTitle}</h2>
                     <button
                         onClick={onNewSession}
                         className="p-1.5 bg-sky-500 hover:bg-sky-600 text-white rounded-md transition-all shadow-sm hover:shadow-md active:scale-95"
@@ -298,9 +326,13 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                             <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-red-500 dark:text-red-400">
                                 <AlertTriangle size={24} />
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Delete Session?</h3>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                                {listTitle === "Cover Letters" ? "Delete Cover Letter?" : "Delete Session?"}
+                            </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                                This action cannot be undone. This session will be permanently removed from your history.
+                                {listTitle === "Cover Letters"
+                                    ? "This action cannot be undone. This will remove the cover letter only; your resume session will remain."
+                                    : "This action cannot be undone. This session will be permanently removed from your history."}
                             </p>
                             <div className="flex gap-3 w-full">
                                 <button

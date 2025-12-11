@@ -89,6 +89,8 @@ export const Dashboard: React.FC = () => {
                 onDeleteSession={handleDeleteSession}
                 onHome={() => { }} // Already on home
                 onWiki={() => navigate('/wiki')}
+                onCoverLetter={() => navigate('/cover-letter')}
+                onLanding={() => navigate('/')}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 width={sidebarWidth}
@@ -110,6 +112,7 @@ export const Dashboard: React.FC = () => {
                         sessions={sessionsList}
                         onNewSession={handleNewSession}
                         onSelectSession={handleSwitchSession}
+                        onCoverLetter={() => navigate('/cover-letter')}
                     />
                 </main>
 

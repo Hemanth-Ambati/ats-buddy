@@ -54,8 +54,35 @@ async function parsePdf(file: File): Promise<string> {
   for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
-    const strs = content.items.map((i: any) => (i.str ? i.str : ''));
-    pageTexts.push(strs.join(' '));
+
+    // Sort items by Y (descending) then X (ascending) to ensure reading order
+    // Note: PDF coordinates: (0,0) is usually bottom-left. Y increases upwards.
+    const items = content.items as any[]; // cast to any to access transform
+
+    // Simple heuristic: If Y difference is significant => New Line.
+    // Otherwise => Same line (add space).
+
+    if (items.length === 0) continue;
+
+    let pageText = '';
+    let lastY = -1;
+
+    for (const item of items) {
+      if (!item.str) continue;
+
+      const curY = item.transform[5]; // transform is [scaleX, skewY, skewX, scaleY, transX, transY]
+
+      if (lastY !== -1 && Math.abs(curY - lastY) > 5) {
+        pageText += '\n' + item.str;
+      } else {
+        // If we're on the same line but there's a gap? 
+        // For simplicity, just add space if it's not the start
+        pageText += (pageText.length > 0 && !pageText.endsWith('\n') ? ' ' : '') + item.str;
+      }
+      lastY = curY;
+    }
+
+    pageTexts.push(pageText);
   }
 
   let result = pageTexts.filter(Boolean).join('\n\n');
