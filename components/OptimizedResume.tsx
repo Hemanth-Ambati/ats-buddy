@@ -1,7 +1,6 @@
 import * as React from 'react';
 import remarkGfm from 'remark-gfm';
-import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+
 import ReactMarkdown from 'react-markdown';
 import { remark } from 'remark';
 import remarkParse from 'remark-parse';
@@ -119,6 +118,7 @@ async function downloadAsPdf(text: string, filename = 'optimized-resume.pdf') {
     const processor = remark().use(remarkParse);
     const ast = processor.parse(text);
 
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',
@@ -283,11 +283,12 @@ async function downloadAsDocx(text: string, filename = 'optimized-resume.docx') 
   try {
     const processor = remark().use(remarkParse);
     const ast = processor.parse(text);
-    const children: Paragraph[] = [];
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+    const children: any[] = [];
 
     // Helper to convert inline nodes (text, strong, emphasis) to TextRuns
-    const processInline = (nodes: any[]): TextRun[] => {
-      const runs: TextRun[] = [];
+    const processInline = (nodes: any[]) => {
+      const runs: any[] = [];
 
       const createRuns = (text: string, options: any = {}) => {
         const parts = text.split('\n');

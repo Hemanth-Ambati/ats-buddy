@@ -26,6 +26,19 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-aws': ['aws-amplify', '@aws-amplify/ui-react'],
+            'vendor-pdf': ['jspdf', 'html2canvas', 'pdfjs-dist'],
+            'vendor-ui': ['framer-motion', 'lucide-react']
+          }
+        }
+      }
     }
   };
 });
