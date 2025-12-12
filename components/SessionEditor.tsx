@@ -134,11 +134,11 @@ export const SessionEditor: React.FC = () => {
             await saveUserSession(currentUser.uid, newSession);
         }
         saveSessionToHistory(newSession, true);
-        navigate(`/session/${newSession.sessionId}`);
+        navigate(`/optimize/${newSession.sessionId}`);
     };
 
     const handleSwitchSession = (id: string) => {
-        navigate(`/session/${id}`);
+        navigate(`/optimize/${id}`);
     };
 
     const handleDeleteSession = async (id: string) => {

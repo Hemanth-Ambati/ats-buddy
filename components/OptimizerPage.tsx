@@ -34,11 +34,11 @@ export const OptimizerPage: React.FC = () => {
         const newSession = resetSession();
         // Don't save to DB immediately - wait for content
         saveSessionToHistory(newSession, true);
-        navigate(`/session/${newSession.sessionId}`);
+        navigate(`/optimize/${newSession.sessionId}`);
     };
 
     const handleSwitchSession = (sessionId: string) => {
-        navigate(`/session/${sessionId}`);
+        navigate(`/optimize/${sessionId}`);
     };
 
     const handleDeleteSession = async (sessionId: string) => {

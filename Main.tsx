@@ -160,7 +160,7 @@ const AnimatedRoutes: React.FC = () => {
           }
         />
         <Route
-          path="/session/:sessionId"
+          path="/optimize/:sessionId"
           element={
             <ProtectedRoute>
               <PageTransition>

@@ -44,14 +44,14 @@ export const Dashboard: React.FC = () => {
         const newSession = resetSession();
         // Don't save to DB immediately - wait for content
         saveSessionToHistory(newSession, true);
-        navigate(`/session/${newSession.sessionId}`);
+        navigate(`/optimize/${newSession.sessionId}`);
     };
 
     const handleSwitchSession = (sessionId: string, isCoverLetter?: boolean) => {
         if (isCoverLetter) {
             navigate(`/cover-letter/${sessionId}`);
         } else {
-            navigate(`/session/${sessionId}`);
+            navigate(`/optimize/${sessionId}`);
         }
     };
 

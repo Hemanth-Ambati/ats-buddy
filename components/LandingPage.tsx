@@ -79,7 +79,7 @@ export const LandingPage: React.FC = () => {
                         to="/signup"
                         className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-sky-600 to-blue-600 text-white font-bold text-lg hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 transition-all duration-300"
                     >
-                        Optimize My Resume Free
+                        Get Started for Free
                     </Link>
                     <a
                         href="#how-it-works"
