@@ -160,7 +160,7 @@ export const WikiPage: React.FC = () => {
                         <Book size={24} />
                         <span>Wiki</span>
                     </div>
-                    <button onClick={() => navigate('/home')} className="text-xs text-slate-500 hover:text-sky-500">
+                    <button onClick={() => navigate('/dashboard')} className="text-xs text-slate-500 hover:text-sky-500">
                         Back to App
                     </button>
                 </div>
@@ -200,7 +200,7 @@ export const WikiPage: React.FC = () => {
                 <Header
                     theme={theme}
                     toggleTheme={toggleTheme}
-                    onHome={() => navigate('/home')}
+                    onHome={() => navigate('/dashboard')}
                 />
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10">
                     <button
@@ -223,7 +223,7 @@ export const WikiPage: React.FC = () => {
                         {activeSection === 'ats-guide' && (
                             <div className="mt-12 flex justify-center">
                                 <button
-                                    onClick={() => navigate('/home')}
+                                    onClick={() => navigate('/dashboard')}
                                     className="px-8 py-3 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 flex items-center gap-2"
                                 >
                                     Lets get started

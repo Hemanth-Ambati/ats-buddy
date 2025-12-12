@@ -13,7 +13,7 @@ export const VerifyEmailPage: React.FC = () => {
 
     useEffect(() => {
         if (currentUser?.emailVerified) {
-            navigate('/home');
+            navigate('/dashboard');
         }
     }, [currentUser, navigate]);
 

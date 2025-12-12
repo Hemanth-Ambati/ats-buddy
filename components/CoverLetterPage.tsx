@@ -552,7 +552,7 @@ export const CoverLetterPage: React.FC = () => {
                     theme={theme}
                     toggleTheme={toggleTheme}
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                    onHome={() => navigate('/home')}
+                    onHome={() => navigate('/dashboard')}
                     isSidebarOpen={isSidebarOpen}
                 />
 

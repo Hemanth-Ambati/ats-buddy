@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6 absolute left-1/2 top-1/2 -translate-x-1/2">
           <Link
-            to="/home"
-            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/home' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+            to="/dashboard"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/dashboard' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
           >
             <LayoutDashboard size={18} />
             Dashboard

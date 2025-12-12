@@ -43,7 +43,7 @@ export const SignupPage: React.FC = () => {
 
             // 3. Handle next steps
             if (isSignUpComplete) {
-                navigate('/home');
+                navigate('/dashboard');
             } else if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
                 navigate(`/confirm-email?email=${encodeURIComponent(email)}`);
             } else {
@@ -197,7 +197,7 @@ export const SignupPage: React.FC = () => {
                                 try {
                                     setLoading(true);
                                     await loginWithGoogle();
-                                    navigate('/home');
+                                    navigate('/dashboard');
                                 } catch (error) {
                                     console.error(error);
                                     setError('Failed to sign up with Google.');

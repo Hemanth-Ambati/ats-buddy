@@ -63,7 +63,7 @@ export const OptimizerPage: React.FC = () => {
                 onNewSession={handleNewSession}
                 onRenameSession={() => { }} // Read-only context info mostly
                 onDeleteSession={handleDeleteSession}
-                onHome={() => navigate('/home')}
+                onHome={() => navigate('/dashboard')}
                 onOptimize={() => { }} // Already on Optimize page
                 onWiki={() => navigate('/wiki')}
                 onCoverLetter={() => navigate('/cover-letter')}

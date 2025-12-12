@@ -162,7 +162,7 @@ export const ProfilePage: React.FC = () => {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
             <div className="max-w-3xl mx-auto">
                 <div className="mb-8">
-                    <Link to="/home" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+                    <Link to="/dashboard" className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
                         <ArrowLeft size={16} className="mr-1" />
                         Back to Dashboard
                     </Link>

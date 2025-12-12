@@ -150,7 +150,7 @@ const AnimatedRoutes: React.FC = () => {
           }
         />
         <Route
-          path="/home"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <PageTransition>

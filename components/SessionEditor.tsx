@@ -149,7 +149,7 @@ export const SessionEditor: React.FC = () => {
             await deleteUserSession(currentUser.uid, id);
         }
         if (id === sessionId) {
-            navigate('/home');
+            navigate('/dashboard');
         }
     };
 
@@ -299,7 +299,7 @@ You can now ask me specific questions about the analysis or request further impr
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
                 <h2 className="text-2xl font-bold mb-4">Session Not Found</h2>
                 <p className="mb-6 text-slate-600 dark:text-slate-400">The session you are looking for does not exist or you do not have permission to view it.</p>
-                <button onClick={() => navigate('/home')} className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">
+                <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">
                     Go Home
                 </button>
             </div>
@@ -317,7 +317,7 @@ You can now ask me specific questions about the analysis or request further impr
                 onNewSession={handleNewSession}
                 onRenameSession={handleRenameSession}
                 onDeleteSession={handleDeleteSession}
-                onHome={() => navigate('/home')}
+                onHome={() => navigate('/dashboard')}
                 onOptimize={() => navigate('/optimize')}
                 onWiki={() => navigate('/wiki')}
                 onCoverLetter={() => navigate('/cover-letter')}
@@ -334,7 +334,7 @@ You can now ask me specific questions about the analysis or request further impr
                     toggleTheme={toggleTheme}
                     onChatToggle={toggleChat}
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                    onHome={() => navigate('/home')}
+                    onHome={() => navigate('/dashboard')}
                     isSidebarOpen={isSidebarOpen}
                 />
 

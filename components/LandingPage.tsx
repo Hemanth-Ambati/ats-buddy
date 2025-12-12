@@ -19,14 +19,14 @@ export const LandingPage: React.FC = () => {
 
             {/* Navigation */}
             <nav className="relative z-50 container mx-auto px-6 py-6 flex justify-between items-center">
-                <div className="flex items-center gap-2">
+                <Link to={currentUser ? "/dashboard" : "/"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <div className="w-8 h-8 bg-gradient-to-br from-sky-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                         A
                     </div>
                     <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                         ATS <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-emerald-500">Buddy</span>
                     </span>
-                </div>
+                </Link>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={toggleTheme}
@@ -37,7 +37,7 @@ export const LandingPage: React.FC = () => {
                     </button>
                     {currentUser ? (
                         <Link
-                            to="/home"
+                            to="/dashboard"
                             className="px-5 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium hover:opacity-90 transition-opacity"
                         >
                             Go to Dashboard
