@@ -10,6 +10,7 @@ interface SessionSidebarProps {
     onRenameSession: (sessionId: string, newTitle: string) => void;
     onDeleteSession: (sessionId: string) => void;
     onHome: () => void;
+    onOptimize?: () => void;
     onWiki: () => void;
     onCoverLetter: () => void;
     onLanding?: () => void;
@@ -28,6 +29,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     onRenameSession,
     onDeleteSession,
     onHome,
+    onOptimize,
     onWiki,
     onCoverLetter,
     onLanding,
@@ -171,21 +173,30 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                     </button>
                 </div>
 
-                <div className="px-3 py-2 space-y-1">
+                <div className="px-3 py-2 space-y-1 md:hidden">
                     <button
                         onClick={onHome}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     >
-                        <Home size={18} />
-                        Home
+                        <div className="flex items-center justify-center w-[18px]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                        </div>
+                        Dashboard
                     </button>
-                    <button
-                        onClick={onWiki}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                        <Book size={18} />
-                        Wiki
-                    </button>
+                    {onOptimize && (
+                        <button
+                            onClick={onOptimize}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        >
+                            <Plus size={18} />
+                            Optimizer
+                        </button>
+                    )}
                     <button
                         onClick={onCoverLetter}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -198,16 +209,17 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                             onClick={onLanding}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                         >
-                            <div className="flex items-center justify-center w-[18px]">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="2" x2="22" y1="12" y2="12" />
-                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                                </svg>
-                            </div>
-                            Landing Page
+                            <Home size={18} />
+                            Home
                         </button>
                     )}
+                    <button
+                        onClick={onWiki}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    >
+                        <Book size={18} />
+                        Wiki
+                    </button>
                 </div>
 
                 <div className="px-4 py-2 flex justify-between items-center bg-transparent">

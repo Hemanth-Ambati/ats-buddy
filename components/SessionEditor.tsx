@@ -318,6 +318,7 @@ You can now ask me specific questions about the analysis or request further impr
                 onRenameSession={handleRenameSession}
                 onDeleteSession={handleDeleteSession}
                 onHome={() => navigate('/home')}
+                onOptimize={() => navigate('/optimize')}
                 onWiki={() => navigate('/wiki')}
                 onCoverLetter={() => navigate('/cover-letter')}
                 onLanding={() => navigate('/')}

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Plus, Home, Book, FileText, LayoutDashboard } from 'lucide-react';
 import { resetSession } from '../services/sessionService';
 
 interface HeaderProps {
@@ -9,12 +10,14 @@ interface HeaderProps {
   onChatToggle?: () => void;
   onMenuToggle?: () => void;
   onHome?: () => void;
+  onNewSession?: () => void;
   isSidebarOpen?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle, onMenuToggle, onHome, isSidebarOpen }) => {
+export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle, onMenuToggle, onHome, onNewSession, isSidebarOpen }) => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
 
   const handleLogout = async () => {
@@ -50,6 +53,46 @@ export const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onChatToggle
             </button>
           </div>
         </div>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-6 absolute left-1/2 top-1/2 -translate-x-1/2">
+          <Link
+            to="/home"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/home' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+          >
+            <LayoutDashboard size={18} />
+            Dashboard
+          </Link>
+          <Link
+            to="/optimize"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/optimize' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+          >
+            <Plus size={18} />
+            Optimizer
+          </Link>
+          <Link
+            to="/cover-letter"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/cover-letter' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+          >
+            <FileText size={18} />
+            Cover Letters
+          </Link>
+          <Link
+            to="/"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+          >
+            <Home size={18} />
+            Home
+          </Link>
+          <Link
+            to="/wiki"
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${location.pathname === '/wiki' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400'}`}
+          >
+            <Book size={18} />
+            Wiki
+          </Link>
+        </div>
+
         <div className="flex items-center gap-3">
           {onChatToggle && (
             <button

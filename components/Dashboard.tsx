@@ -47,8 +47,12 @@ export const Dashboard: React.FC = () => {
         navigate(`/session/${newSession.sessionId}`);
     };
 
-    const handleSwitchSession = (sessionId: string) => {
-        navigate(`/session/${sessionId}`);
+    const handleSwitchSession = (sessionId: string, isCoverLetter?: boolean) => {
+        if (isCoverLetter) {
+            navigate(`/cover-letter/${sessionId}`);
+        } else {
+            navigate(`/session/${sessionId}`);
+        }
     };
 
     const handleDeleteSession = async (sessionId: string) => {
@@ -87,7 +91,8 @@ export const Dashboard: React.FC = () => {
                 onNewSession={handleNewSession}
                 onRenameSession={handleRenameSession}
                 onDeleteSession={handleDeleteSession}
-                onHome={() => { }} // Already on home
+                onHome={() => { }} // Already on dashboard
+                onOptimize={() => navigate('/optimize')}
                 onWiki={() => navigate('/wiki')}
                 onCoverLetter={() => navigate('/cover-letter')}
                 onLanding={() => navigate('/')}
@@ -104,6 +109,7 @@ export const Dashboard: React.FC = () => {
                     toggleTheme={toggleTheme}
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                     onHome={() => { }}
+                    onNewSession={handleNewSession}
                     isSidebarOpen={isSidebarOpen}
                 />
 

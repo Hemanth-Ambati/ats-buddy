@@ -24,6 +24,7 @@ import { SessionEditor } from './components/SessionEditor';
 import { LandingPage } from './components/LandingPage';
 import { WikiPage } from './components/Wiki/WikiPage';
 import { CoverLetterPage } from './components/CoverLetterPage';
+import { OptimizerPage } from './components/OptimizerPage';
 import { VerifyEmailPage } from './components/Auth/VerifyEmailPage';
 import { ConfirmEmailPage } from './components/Auth/ConfirmEmailPage';
 import { AuthActionPage } from './components/Auth/AuthActionPage';
@@ -194,6 +195,16 @@ const AnimatedRoutes: React.FC = () => {
             <ProtectedRoute>
               <PageTransition>
                 <CoverLetterPage />
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/optimize"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <OptimizerPage />
               </PageTransition>
             </ProtectedRoute>
           }

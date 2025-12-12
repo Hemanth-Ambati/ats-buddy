@@ -6,7 +6,7 @@ import type { SessionSummary } from '../services/dbService';
 interface DashboardHomeProps {
     sessions: SessionSummary[];
     onNewSession: () => void;
-    onSelectSession: (sessionId: string) => void;
+    onSelectSession: (sessionId: string, isCoverLetter?: boolean) => void;
     onCoverLetter?: () => void;
 }
 
@@ -107,7 +107,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                         {sessions.slice(0, 6).map((session) => (
                             <button
                                 key={session.sessionId}
-                                onClick={() => onSelectSession(session.sessionId)}
+                                onClick={() => onSelectSession(session.sessionId, !!session.hasCoverLetter)}
                                 className="group p-5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-md transition-all duration-200 text-left flex flex-col h-full"
                             >
                                 <div className="flex items-start justify-between w-full mb-3">
@@ -118,12 +118,21 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                                         {new Date(session.updatedAt).toLocaleDateString()}
                                     </span>
                                 </div>
-                                <h3 className="font-semibold text-slate-900 dark:text-white mb-1 line-clamp-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                                     {session.title || 'Untitled Session'}
                                 </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mt-auto">
-                                    {session.preview || 'No preview available'}
-                                </p>
+
+                                <div className="mt-auto">
+                                    {session.hasCoverLetter ? (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800">
+                                            Cover Letter
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                            Resume Optimization
+                                        </span>
+                                    )}
+                                </div>
                             </button>
                         ))}
                     </div>
