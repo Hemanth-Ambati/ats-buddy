@@ -9,11 +9,11 @@ resource "aws_appsync_graphql_api" "main" {
   }
 
   schema = file("${path.root}/../backend/schema.graphql")
-  
+
   additional_authentication_provider {
     authentication_type = "AWS_IAM"
   }
-  
+
   log_config {
     cloudwatch_logs_role_arn = aws_iam_role.appsync_logs.arn
     field_log_level          = "ERROR"
@@ -44,6 +44,11 @@ resource "aws_iam_role" "appsync_logs" {
 resource "aws_iam_role_policy_attachment" "appsync_logs" {
   role       = aws_iam_role.appsync_logs.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSAppSyncPushToCloudWatchLogs"
+}
+
+resource "aws_wafv2_web_acl_association" "main" {
+  resource_arn = aws_appsync_graphql_api.main.arn
+  web_acl_arn  = var.waf_acl_arn
 }
 
 output "api_url" {

@@ -70,13 +70,13 @@ resource "aws_cognito_identity_provider" "google" {
   provider_type = "Google"
 
   provider_details = {
-    authorize_scopes = "email profile openid"
-    client_id        = var.google_client_id
-    client_secret    = var.google_client_secret
-    attributes_url   = "https://people.googleapis.com/v1/people/me?personFields="
-    authorize_url    = "https://accounts.google.com/o/oauth2/v2/auth"
-    oidc_issuer      = "https://accounts.google.com"
-    token_url        = "https://www.googleapis.com/oauth2/v4/token"
+    authorize_scopes     = "email profile openid"
+    client_id            = var.google_client_id
+    client_secret        = var.google_client_secret
+    attributes_url       = "https://people.googleapis.com/v1/people/me?personFields="
+    authorize_url        = "https://accounts.google.com/o/oauth2/v2/auth"
+    oidc_issuer          = "https://accounts.google.com"
+    token_url            = "https://www.googleapis.com/oauth2/v4/token"
     token_request_method = "POST"
   }
 

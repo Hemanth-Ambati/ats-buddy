@@ -5,3 +5,8 @@ variable "project_name" {
 variable "environment" {
   type = string
 }
+
+variable "kms_key_arn" {
+  type        = string
+  description = "KMS Key ARN for encryption"
+}

@@ -27,7 +27,7 @@ variable "google_client_id" {
 }
 
 variable "google_client_secret" {
-  type    = string
-  default = ""
+  type      = string
+  default   = ""
   sensitive = true
 }

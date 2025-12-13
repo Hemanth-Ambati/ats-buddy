@@ -14,3 +14,8 @@ variable "user_pool_id" {
   type        = string
   description = "The Cognito User Pool ID"
 }
+
+variable "waf_acl_arn" {
+  type        = string
+  description = "ARN of the WAF Web ACL"
+}

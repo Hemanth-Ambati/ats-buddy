@@ -30,3 +30,8 @@ variable "user_pool_client_id" {
 variable "aws_region" {
   type = string
 }
+
+variable "identity_pool_id" {
+  type        = string
+  description = "Cognito Identity Pool ID"
+}

@@ -7,12 +7,12 @@ resource "aws_dynamodb_table" "sessions" {
     name = "id"
     type = "S"
   }
-  
+
   # Secondary Index for querying by User
   global_secondary_index {
-    name               = "byUser"
-    hash_key           = "userId"
-    projection_type    = "ALL"
+    name            = "byUser"
+    hash_key        = "userId"
+    projection_type = "ALL"
   }
 
   attribute {
@@ -25,7 +25,8 @@ resource "aws_dynamodb_table" "sessions" {
   }
 
   server_side_encryption {
-    enabled = true
+    enabled     = true
+    kms_key_arn = var.kms_key_arn
   }
 
   deletion_protection_enabled = var.environment == "prod"

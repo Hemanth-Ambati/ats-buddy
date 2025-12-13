@@ -32,6 +32,7 @@ resource "aws_amplify_app" "frontend" {
     VITE_API_URL             = var.api_url
     VITE_USER_POOL_ID        = var.user_pool_id
     VITE_USER_POOL_CLIENT_ID = var.user_pool_client_id
+    VITE_IDENTITY_POOL_ID    = var.identity_pool_id
     VITE_REGION              = var.aws_region
   }
 
@@ -50,7 +51,7 @@ resource "aws_amplify_branch" "main" {
 
   enable_auto_build = true
   stage             = var.environment == "prod" ? "PRODUCTION" : "DEVELOPMENT"
-  
+
   framework = "React"
 }
 

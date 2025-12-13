@@ -5,6 +5,20 @@ module "bootstrap" {
   environment  = var.environment
 }
 
+module "kms" {
+  source = "./modules/kms"
+
+  project_name = var.project_name
+  environment  = var.environment
+}
+
+module "waf" {
+  source = "./modules/waf"
+
+  project_name = var.project_name
+  environment  = var.environment
+}
+
 module "auth" {
   source = "./modules/auth"
 
@@ -20,6 +34,7 @@ module "storage" {
 
   project_name = var.project_name
   environment  = var.environment
+  kms_key_arn  = module.kms.key_arn
 }
 
 module "api" {
@@ -29,6 +44,7 @@ module "api" {
   environment  = var.environment
   aws_region   = var.aws_region
   user_pool_id = module.auth.user_pool_id
+  waf_acl_arn  = module.waf.web_acl_arn
 }
 
 module "hosting" {
@@ -42,6 +58,7 @@ module "hosting" {
   api_url             = module.api.api_url
   user_pool_id        = module.auth.user_pool_id
   user_pool_client_id = module.auth.user_pool_client_id
+  identity_pool_id    = module.auth.identity_pool_id
 }
 
 module "functions" {
