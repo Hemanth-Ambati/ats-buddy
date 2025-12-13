@@ -9,7 +9,7 @@
         "functions"
     ],
     "scripts": {
-        "build": "npm-run-all build:* && rm -rf dist && cp -r frontend/dist dist",
+        "build": "npm-run-all build:* && npx shx rm -rf dist && npx shx cp -r frontend/dist dist",
         "build:frontend": "npm run build --workspace=frontend",
         "build:backend-proxy": "npm run build --workspace=backend/functions/atsbuddyGeminiProxy/src",
         "build:functions": "npm run build --workspace=functions",

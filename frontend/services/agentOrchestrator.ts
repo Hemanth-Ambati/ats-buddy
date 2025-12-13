@@ -88,6 +88,8 @@ const coverLetterSchema = {
   type: Type.OBJECT,
   properties: {
     markdown: { type: Type.STRING },
+    jobTitle: { type: Type.STRING },
+    company: { type: Type.STRING },
   },
   required: ['markdown'],
 };
@@ -367,7 +369,7 @@ export async function generateCoverLetterVariations(
   resumeText: string,
   jdText: string,
   sessionId: string
-): Promise<{ status: 'completed' | 'failed', outputs: { markdown: string, style: string }[], error?: string }> {
+): Promise<{ status: 'completed' | 'failed', outputs: { markdown: string, style: string, jobTitle?: string, company?: string }[], error?: string }> {
   try {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -400,6 +402,7 @@ export async function generateCoverLetterVariations(
         
         OUTPUT FORMAT:
         Return ONLY the markdown text of the letter. No introductory text.
+        ALSO EXTRACT the "Job Title" and "Company Name" from the Job Description into the JSON response.
         IMPORTANT: Use double newlines (\n\n) between sections and paragraphs to ensure proper Markdown rendering. Do NOT produce a single block of text.
         `;
 
@@ -407,7 +410,9 @@ export async function generateCoverLetterVariations(
       const text = result.markdown;
       return {
         markdown: text,
-        style: style.name
+        style: style.name,
+        jobTitle: result.jobTitle,
+        company: result.company
       };
     });
 
@@ -461,7 +466,8 @@ REQUIREMENTS:
 4. **Formatting**: 
    - Use double newlines (\n\n) between paragraphs.
    - Do NOT produce one single block of text.
-   - Output in Markdown.`;
+   - Output in Markdown.
+    5. **Metadata**: Extract the "Job Title" and "Company Name" from the Job Description.`;
 
     return generateStructured<CoverLetter>(prompt, coverLetterSchema, 0.4);
   });

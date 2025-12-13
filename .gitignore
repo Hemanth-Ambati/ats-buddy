@@ -30,6 +30,7 @@ dist-ssr
 *.csv
 client_secret_*.json
 firebase-service-account.json
+amplify/team-provider-info.json
 
 # Logs/Junk
 tsc_errors*.txt

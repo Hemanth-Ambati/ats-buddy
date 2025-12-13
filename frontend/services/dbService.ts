@@ -123,6 +123,7 @@ export interface SessionSummary {
     updatedAt: string;
     preview?: string;
     hasCoverLetter?: boolean;
+    hasOptimizer?: boolean;
 }
 
 /**
@@ -362,11 +363,15 @@ export function subscribeToUserSessions(userId: string, callback: (sessions: Ses
 
             const sessions = data.sessionsByUserIdAndUpdatedAt.items.map((item: any) => {
                 let hasCoverLetter = false;
+                let hasOptimizer = false;
                 try {
                     if (item.analysis) {
                         const analysis = JSON.parse(item.analysis);
                         if (analysis && analysis.coverLetter) {
                             hasCoverLetter = true;
+                        }
+                        if (analysis && analysis.optimiser) {
+                            hasOptimizer = true;
                         }
                     }
                 } catch (e) {
@@ -378,7 +383,8 @@ export function subscribeToUserSessions(userId: string, callback: (sessions: Ses
                     title: item.title || 'Untitled Session',
                     updatedAt: item.updatedAt,
                     preview: item.resumeText ? item.resumeText.substring(0, 150) + '...' : 'No preview available',
-                    hasCoverLetter
+                    hasCoverLetter,
+                    hasOptimizer
                 };
             });
 

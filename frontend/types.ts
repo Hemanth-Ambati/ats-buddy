@@ -60,12 +60,16 @@ export interface OptimizedResumeDraft {
 export interface CoverLetterVersion {
   id: string;
   markdown: string;
+  jobTitle?: string;
+  company?: string;
   createdAt: number;
   style?: string;
 }
 
 export interface CoverLetter {
   markdown: string;       // Current selected version content
+  jobTitle?: string;      // Extracted from JD
+  company?: string;       // Extracted from JD
   versions?: CoverLetterVersion[]; // History of versions
   selectedId?: string;    // ID of currently selected version
 }

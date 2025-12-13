@@ -33,6 +33,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
 }) => {
   const [isParsing, setIsParsing] = React.useState(false);
   const [parseError, setParseError] = React.useState<string | null>(null);
+  const [isResumeFromProfile, setIsResumeFromProfile] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const isButtonDisabled = !resumeText.trim() || !jobDescriptionText.trim() || isLoading || isParsing;
@@ -76,11 +77,14 @@ export const InputSection: React.FC<InputSectionProps> = ({
             <label htmlFor="resume" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
               Resume (paste or upload)
             </label>
-            {onLoadProfile && (
+            {onLoadProfile && !isResumeFromProfile && (
               <button
                 onClick={async () => {
                   const text = await onLoadProfile();
-                  if (text) setResumeText(text);
+                  if (text) {
+                    setResumeText(text);
+                    setIsResumeFromProfile(true);
+                  }
                 }}
                 className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-medium flex items-center gap-1 transition-colors"
                 type="button"
@@ -91,28 +95,53 @@ export const InputSection: React.FC<InputSectionProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-4 mb-2">
-            <input
-              id="resume-file"
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={handleFileChange}
-              disabled={isParsing || isLoading}
-              className="text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 dark:file:bg-sky-900/50 file:text-sky-700 dark:file:text-sky-300 hover:file:bg-sky-100 dark:hover:file:bg-sky-900 transition-colors"
-            />
-            {isParsing && <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">Parsing file...</span>}
-            {parseError && <span className="text-sm text-rose-500">{parseError}</span>}
-          </div>
+          {isResumeFromProfile ? (
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">Resume loaded from profile</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsResumeFromProfile(false);
+                    setResumeText('');
+                  }}
+                  className="text-xs text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors"
+                  type="button"
+                >
+                  Clear & enter manually
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-4 mb-2">
+                <input
+                  id="resume-file"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleFileChange}
+                  disabled={isParsing || isLoading}
+                  className="text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 dark:file:bg-sky-900/50 file:text-sky-700 dark:file:text-sky-300 hover:file:bg-sky-100 dark:hover:file:bg-sky-900 transition-colors"
+                />
+                {isParsing && <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">Parsing file...</span>}
+                {parseError && <span className="text-sm text-rose-500">{parseError}</span>}
+              </div>
 
-          <textarea
-            id="resume"
-            value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
-            placeholder="Paste the full text of your resume here..."
-            className="w-full h-48 p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all resize-y placeholder:text-slate-400 dark:placeholder:text-slate-600"
-            disabled={isLoading || isParsing}
-          />
+              <textarea
+                id="resume"
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                placeholder="Paste the full text of your resume here..."
+                className="w-full h-48 p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all resize-y placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                disabled={isLoading || isParsing}
+              />
+            </>
+          )}
         </div>
 
         <div>

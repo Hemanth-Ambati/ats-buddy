@@ -5,28 +5,29 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let config;
+const outputPath = path.join(__dirname, '../src/aws-exports.js');
 
-if (process.env.AWS_EXPORTS_JSON) {
-    try {
-        config = JSON.parse(process.env.AWS_EXPORTS_JSON);
-        console.log('✅ Loaded config from AWS_EXPORTS_JSON');
-    } catch (e) {
-        console.error('❌ Failed to parse AWS_EXPORTS_JSON:', e);
+// Only generate when AWS_EXPORTS_JSON is set (CI/CD deployment)
+// Otherwise, use the existing aws-exports.js file
+if (!process.env.AWS_EXPORTS_JSON) {
+    if (fs.existsSync(outputPath)) {
+        console.log('✅ Using existing src/aws-exports.js (no AWS_EXPORTS_JSON set)');
+        process.exit(0);
+    } else {
+        console.error('❌ No AWS_EXPORTS_JSON set and src/aws-exports.js does not exist.');
+        console.error('   Please create src/aws-exports.js manually or set AWS_EXPORTS_JSON for deployment.');
         process.exit(1);
     }
-} else {
-    config = {
-        aws_project_region: process.env.VITE_REGION || 'us-east-1',
-        aws_cognito_identity_pool_id: process.env.VITE_IDENTITY_POOL_ID,
-        aws_cognito_region: process.env.VITE_REGION || 'us-east-1',
-        aws_user_pools_id: process.env.VITE_USER_POOL_ID,
-        aws_user_pools_web_client_id: process.env.VITE_USER_POOL_CLIENT_ID,
-        oauth: {},
-        aws_appsync_graphqlEndpoint: process.env.VITE_API_URL,
-        aws_appsync_region: process.env.VITE_REGION || 'us-east-1',
-        aws_appsync_authenticationType: "AMAZON_COGNITO_USER_POOLS"
-    };
+}
+
+let config;
+
+try {
+    config = JSON.parse(process.env.AWS_EXPORTS_JSON);
+    console.log('✅ Loaded config from AWS_EXPORTS_JSON');
+} catch (e) {
+    console.error('❌ Failed to parse AWS_EXPORTS_JSON:', e);
+    process.exit(1);
 }
 
 const fileContent = `/* eslint-disable */
@@ -37,8 +38,6 @@ const awsmobile = ${JSON.stringify(config, null, 2)};
 
 export default awsmobile;
 `;
-
-const outputPath = path.join(__dirname, '../src/aws-exports.js');
 
 fs.writeFileSync(outputPath, fileContent);
 

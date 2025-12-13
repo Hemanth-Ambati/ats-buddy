@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, RefreshCw, FileText, ArrowRight, Clock, Target } from 'lucide-react';
+import { Plus, RefreshCw, FileText, ArrowRight, Clock, Target, Trash2, Edit3, Check, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { subscribeToUserSessions, deleteUserSession, type SessionSummary, loadSessionById, saveUserSession } from '../services/dbService';
-import { getLocalSessions, loadLocalSession, saveSessionToHistory, deleteSessionFromHistory, resetSession } from '../services/sessionService';
+import { subscribeToUserSessions, deleteUserSession, renameUserSession, type SessionSummary, loadSessionById, saveUserSession } from '../services/dbService';
+import { getLocalSessions, loadLocalSession, saveSessionToHistory, deleteSessionFromHistory, resetSession, renameSessionInHistory } from '../services/sessionService';
 import { SessionSidebar } from './SessionSidebar';
 import { Header } from './Header';
 
@@ -50,6 +50,61 @@ export const OptimizerPage: React.FC = () => {
         if (currentUser) {
             await deleteUserSession(currentUser.uid, sessionId);
         }
+    };
+
+    const handleRenameSession = async (sessionId: string, newTitle: string) => {
+        // Optimistic local update
+        setSessionsList(prev => prev.map(s =>
+            s.sessionId === sessionId ? { ...s, title: newTitle } : s
+        ));
+
+        // Persist
+        renameSessionInHistory(sessionId, newTitle);
+        if (currentUser) {
+            await renameUserSession(currentUser.uid, sessionId, newTitle);
+        }
+    };
+
+    // Inline rename state
+    const [editingSessionId, setEditingSessionId] = React.useState<string | null>(null);
+    const [editTitle, setEditTitle] = React.useState('');
+    const [deleteConfirmationId, setDeleteConfirmationId] = React.useState<string | null>(null);
+
+    const handleStartRename = (e: React.MouseEvent, sessionId: string, currentTitle: string) => {
+        e.stopPropagation();
+        setEditingSessionId(sessionId);
+        setEditTitle(currentTitle || 'Untitled Session');
+    };
+
+    const handleConfirmRename = (e: React.MouseEvent, sessionId: string) => {
+        e.stopPropagation();
+        if (editTitle.trim()) {
+            handleRenameSession(sessionId, editTitle.trim());
+        }
+        setEditingSessionId(null);
+        setEditTitle('');
+    };
+
+    const handleCancelRename = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingSessionId(null);
+        setEditTitle('');
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, sessionId: string) => {
+        e.stopPropagation();
+        setDeleteConfirmationId(sessionId);
+    };
+
+    const executeDelete = () => {
+        if (deleteConfirmationId) {
+            handleDeleteSession(deleteConfirmationId);
+            setDeleteConfirmationId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setDeleteConfirmationId(null);
     };
 
     return (
@@ -135,28 +190,75 @@ export const OptimizerPage: React.FC = () => {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {sessionsList.map((session) => (
-                                        <button
+                                        <div
                                             key={session.sessionId}
-                                            onClick={() => handleSwitchSession(session.sessionId)}
-                                            className="group p-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-lg transition-all duration-300 text-left flex flex-col h-full relative overflow-hidden"
+                                            onClick={() => editingSessionId !== session.sessionId && handleSwitchSession(session.sessionId)}
+                                            className="group p-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-lg transition-all duration-300 text-left flex flex-col h-full relative overflow-hidden cursor-pointer"
                                         >
                                             <div className="flex items-start justify-between w-full mb-4">
                                                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-sky-50 group-hover:text-sky-600 dark:group-hover:bg-sky-900/20 dark:group-hover:text-sky-400 transition-colors">
                                                     <FileText size={24} />
                                                 </div>
-                                                <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                                    {new Date(session.updatedAt).toLocaleDateString()}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:hidden">
+                                                        {new Date(session.updatedAt).toLocaleDateString()}
+                                                    </span>
+                                                    <div className="hidden group-hover:flex items-center gap-1">
+                                                        <button
+                                                            onClick={(e) => handleStartRename(e, session.sessionId, session.title)}
+                                                            className="p-1.5 rounded-md text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 dark:hover:text-sky-400 transition-colors"
+                                                            title="Rename"
+                                                        >
+                                                            <Edit3 size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => handleDeleteClick(e, session.sessionId)}
+                                                            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 dark:hover:text-rose-400 transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                                                {session.title || 'Untitled Session'}
-                                            </h3>
+                                            {editingSessionId === session.sessionId ? (
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <input
+                                                        type="text"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleConfirmRename(e as any, session.sessionId);
+                                                            if (e.key === 'Escape') handleCancelRename(e as any);
+                                                        }}
+                                                        className="flex-1 px-2 py-1 text-sm font-semibold border border-sky-500 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={(e) => handleConfirmRename(e, session.sessionId)}
+                                                        className="p-1 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                                                    >
+                                                        <Check size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCancelRename}
+                                                        className="p-1 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                                    {session.title || 'Untitled Session'}
+                                                </h3>
+                                            )}
 
                                             <div className="mt-auto pt-4 flex items-center text-sm font-medium text-sky-600 dark:text-sky-400 group-hover:underline">
                                                 Continue Editing <ArrowRight size={16} className="ml-1" />
                                             </div>
-                                        </button>
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -164,6 +266,39 @@ export const OptimizerPage: React.FC = () => {
                     </div>
                 </main>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmationId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-sm w-full p-6 transform transition-all scale-100 border border-slate-100 dark:border-slate-700">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4 text-red-500 dark:text-red-400">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                                Delete Session?
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                                This action cannot be undone. This session will be permanently removed from your history.
+                            </p>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={cancelDelete}
+                                    className="flex-1 px-4 py-2.5 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-colors text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={executeDelete}
+                                    className="flex-1 px-4 py-2.5 text-white bg-red-500 hover:bg-red-600 rounded-xl font-medium transition-colors shadow-sm shadow-red-500/20 text-sm"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

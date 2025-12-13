@@ -34,7 +34,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ analysisResult, resumeTe
     const text = input.trim();
     if (!text) return;
 
-    console.log('Sending message:', text);
     const userMessage: ChatMessage = { role: 'user', content: text, timestamp: Date.now() };
 
     // Optimistic update
@@ -47,9 +46,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ analysisResult, resumeTe
       // Prepare messages for API: prepend system message if analysis exists
       let apiMessages = [...messages, userMessage];
 
-      console.log('Calling chatWithGemini...');
       const response = await chatWithGemini(apiMessages, analysisResult ?? null, resumeText, jobDescriptionText);
-      console.log('Received response:', response);
 
       // Check if the response contains a resume modification
       if (response.includes('UPDATED_RESUME:') && onResumeUpdate) {

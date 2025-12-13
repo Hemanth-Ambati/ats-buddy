@@ -2,14 +2,15 @@ import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Copy, Download, RefreshCw, AlertCircle, ArrowLeft, Check, FileText, ArrowRight, Mail } from 'lucide-react';
+import { Copy, Download, RefreshCw, AlertCircle, ArrowLeft, Check, FileText, ArrowRight, Mail, Plus, Trash2, Edit3, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { loadSessionById, subscribeToUserSessions, saveUserSession, deleteUserSession, type SessionSummary } from '../services/dbService';
-import { getLocalSessions, loadLocalSession, saveSessionToHistory, saveAnalysis, deleteSessionFromHistory } from '../services/sessionService';
+import { getLocalSessions, loadLocalSession, saveSessionToHistory, saveAnalysis, deleteSessionFromHistory, resetSession, renameSessionInHistory } from '../services/sessionService';
+import { subscribeToUserSessions, deleteUserSession, renameUserSession, type SessionSummary, loadSessionById, saveUserSession, getUserProfileResume } from '../services/dbService';
 import { generateCoverLetter, generateCoverLetterVariations } from '../services/agentOrchestrator';
 import { SessionSidebar } from './SessionSidebar';
 import { Header } from './Header';
+import { parseFile } from '../services/fileParser';
 import type { SessionState, CoverLetter } from '../types';
 
 export const CoverLetterPage: React.FC = () => {
@@ -27,6 +28,16 @@ export const CoverLetterPage: React.FC = () => {
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
     const [copied, setCopied] = React.useState(false);
+    const [isParsing, setIsParsing] = React.useState(false);
+    const [parseError, setParseError] = React.useState<string | null>(null);
+    const [isResumeFromProfile, setIsResumeFromProfile] = React.useState(false);
+
+    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+    // Inline rename & delete state
+    const [editingSessionId, setEditingSessionId] = React.useState<string | null>(null);
+    const [editTitle, setEditTitle] = React.useState('');
+    const [deleteConfirmationId, setDeleteConfirmationId] = React.useState<string | null>(null);
 
     // Subscribe to sessions
     React.useEffect(() => {
@@ -73,6 +84,16 @@ export const CoverLetterPage: React.FC = () => {
     }, [sessionId, currentUser]);
 
     // Handlers
+    const handleNewCoverLetterSession = async () => {
+        const newSession = resetSession();
+        newSession.title = 'New Cover Letter';
+        saveSessionToHistory(newSession, true);
+        if (currentUser) {
+            await saveUserSession(currentUser.uid, newSession);
+        }
+        navigate(`/cover-letter/${newSession.sessionId}`);
+    };
+
     const handleSwitchSession = (id: string) => {
         navigate(`/cover-letter/${id}`);
         // Close sidebar on mobile after selection
@@ -81,52 +102,114 @@ export const CoverLetterPage: React.FC = () => {
         }
     };
 
-    const handleDeleteSession = async (idToDelete: string) => {
-        // Confirmation is handled by SessionSidebar UI
-        try {
-            // 1. Fetch full session data
-            let sessionToUpdate = (await loadSessionById(currentUser?.uid || '', idToDelete)) || loadLocalSession(idToDelete);
+    const handleDeleteSession = async (sessionId: string) => {
+        // 1. Fetch full session to determine type
+        let sessionToUpdate = (await loadSessionById(currentUser?.uid || '', sessionId)) || loadLocalSession(sessionId);
 
-            if (!sessionToUpdate) {
-                console.error("Session not found for deletion");
-                return;
-            }
+        if (!sessionToUpdate) {
+            console.error("Session not found for deletion");
+            return;
+        }
 
-            // 2. Remove Cover Letter Data ONLY
-            // We do NOT delete the session itself, as it contains the resume/JD/chat
-            if (sessionToUpdate.analysis) {
-                delete sessionToUpdate.analysis.coverLetter;
-            }
+        // 2. Logic: Conditional Delete
+        // If it's an optimizer session (has resume analysis), ONLY delete cover letter.
+        // If it's a standalone/fresh session, DELETE the entire session.
+        const isOptimizerSession = !!(sessionToUpdate.analysis?.optimiser);
 
-            // 3. Save Updated Session
+        if (isOptimizerSession && sessionToUpdate.analysis?.coverLetter) {
+            // Case A: Optimizer Session -> Delete CL Only
+            delete sessionToUpdate.analysis.coverLetter;
+
+            // Persist Update
             saveSessionToHistory(sessionToUpdate);
             if (currentUser) {
                 await saveUserSession(currentUser.uid, sessionToUpdate);
             }
 
-            // 4. Update UI List State
-            // Instead of removing it, we mark it as not having a cover letter
+            // Update UI: Move from "Has CL" to "No CL" list
             setSessionsList(prev => prev.map(s =>
-                s.sessionId === idToDelete
-                    ? { ...s, hasCoverLetter: false }
-                    : s
+                s.sessionId === sessionId ? { ...s, hasCoverLetter: false } : s
             ));
 
-            // 5. Navigation/View Update
-            if (idToDelete === sessionId) {
-                // Determine if we should navigate or just refresh
-                // If we are on the specific page, refresh the local session state so it shows "Draft New"
-                setSession({ ...sessionToUpdate });
-
-                // Optional: If you want to kick them back to the list:
-                // navigate('/cover-letter'); 
-                // But staying on the page in "Draft Mode" is better UX for "Undo/Redo" or "Try Again"
+            // If we are currently viewing this session, reload it to reflect deletion
+            if (session?.sessionId === sessionId) {
+                setSession(sessionToUpdate);
             }
-        } catch (err) {
-            console.error("Failed to delete cover letter", err);
-            setError("Failed to delete cover letter");
+        } else {
+            // Case B: Fresh Session or No Optimizer Data -> Full Delete
+            // Optimistic update
+            setSessionsList(prev => prev.filter(s => s.sessionId !== sessionId));
+
+            // Delete from persistence
+            deleteSessionFromHistory(sessionId);
+            if (currentUser) {
+                await deleteUserSession(currentUser.uid, sessionId);
+            }
+
+            // If current session is deleted, navigate home
+            if (sessionId === session?.sessionId) {
+                navigate('/cover-letter');
+                setSession(null);
+            }
         }
     };
+
+    const handleRenameSession = async (sessionId: string, newTitle: string) => {
+        // Optimistic local update
+        setSessionsList(prev => prev.map(s =>
+            s.sessionId === sessionId ? { ...s, title: newTitle } : s
+        ));
+
+        // Persist
+        renameSessionInHistory(sessionId, newTitle);
+        if (currentUser) {
+            await renameUserSession(currentUser.uid, sessionId, newTitle);
+        }
+
+        // Update current session if matching
+        if (session?.sessionId === sessionId) {
+            setSession(prev => prev ? ({ ...prev, title: newTitle }) : null);
+        }
+    };
+
+    const handleStartRename = (e: React.MouseEvent, sessionId: string, currentTitle: string) => {
+        e.stopPropagation();
+        setEditingSessionId(sessionId);
+        setEditTitle(currentTitle || 'New Cover Letter');
+    };
+
+    const handleConfirmRename = (e: React.MouseEvent, sessionId: string) => {
+        e.stopPropagation();
+        if (editTitle.trim()) {
+            handleRenameSession(sessionId, editTitle.trim());
+        }
+        setEditingSessionId(null);
+        setEditTitle('');
+    };
+
+    const handleCancelRename = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingSessionId(null);
+        setEditTitle('');
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, sessionId: string) => {
+        e.stopPropagation();
+        setDeleteConfirmationId(sessionId);
+    };
+
+    const executeDelete = () => {
+        if (deleteConfirmationId) {
+            handleDeleteSession(deleteConfirmationId);
+            setDeleteConfirmationId(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setDeleteConfirmationId(null);
+    };
+
+
 
     const handleGenerate = async () => {
         if (!session || !session.jobDescriptionText) return;
@@ -134,14 +217,9 @@ export const CoverLetterPage: React.FC = () => {
         let resumeText = '';
         if (source === 'optimized') {
             resumeText = session.analysis?.optimiser?.output?.markdown || '';
-            // Fallback if no optimized resume exists
+            // Fallback to original resume if no optimized version exists
             if (!resumeText) {
-                if (confirm("No optimized resume found. Do you want to use the original resume instead?")) {
-                    setSource('original');
-                    resumeText = session.resumeText;
-                } else {
-                    return;
-                }
+                resumeText = session.resumeText;
             }
         } else {
             resumeText = session.resumeText;
@@ -173,8 +251,27 @@ export const CoverLetterPage: React.FC = () => {
                     selectedId: undefined // Explicitly undefined to trigger comparison view
                 };
 
+                // Extract job title and company from JD to auto-name the session
+                // Uses the extracted metadata from the agent response
+                let newTitle = session.title;
+                const firstOutput = result.outputs[0];
+
+                if ((!session.title || session.title === 'New Cover Letter' || session.title === 'Untitled Session')) {
+                    const jobTitle = firstOutput.jobTitle || '';
+                    const company = firstOutput.company || '';
+
+                    if (jobTitle && company) {
+                        newTitle = `${jobTitle} at ${company}`;
+                    } else if (jobTitle) {
+                        newTitle = jobTitle;
+                    } else if (company) {
+                        newTitle = `Role at ${company}`;
+                    }
+                }
+
                 const updatedSession = {
                     ...session,
+                    title: newTitle,
                     analysis: {
                         ...session.analysis!,
                         coverLetter: {
@@ -187,6 +284,13 @@ export const CoverLetterPage: React.FC = () => {
 
                 setSession(updatedSession);
                 saveSessionToHistory(updatedSession);
+
+                // Update sessionsList with new title
+                setSessionsList(prev => prev.map(s =>
+                    s.sessionId === session.sessionId
+                        ? { ...s, title: newTitle, hasCoverLetter: true }
+                        : s
+                ));
 
                 if (currentUser) {
                     await saveUserSession(currentUser.uid, updatedSession);
@@ -380,6 +484,81 @@ export const CoverLetterPage: React.FC = () => {
             );
         }
 
+        const renderSessionCard = (session: SessionSummary) => (
+            <button
+                key={session.sessionId}
+                onClick={() => handleSwitchSession(session.sessionId)}
+                className="group p-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-lg transition-all duration-300 text-left flex flex-col h-full relative overflow-hidden"
+            >
+                {/* Action Buttons - Only for sessions with cover letters */}
+                {session.hasCoverLetter && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg p-1 z-10" onClick={e => e.stopPropagation()}>
+                        <button
+                            onClick={(e) => handleStartRename(e, session.sessionId, session.title || '')}
+                            className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-md transition-colors"
+                            title="Rename"
+                        >
+                            <Edit3 size={14} />
+                        </button>
+                        <button
+                            onClick={(e) => handleDeleteClick(e, session.sessionId)}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-md transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                )}
+
+                <div className="flex items-start justify-between w-full mb-4">
+                    <div className={`p-3 rounded-xl ${session.hasCoverLetter ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                        <FileText size={24} />
+                    </div>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                        {new Date(session.updatedAt).toLocaleDateString()}
+                    </span>
+                </div>
+
+                {editingSessionId === session.sessionId ? (
+                    <div className="mb-2 z-20" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                            <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="flex-1 min-w-0 px-2 py-1 text-sm border border-sky-500 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleConfirmRename(e as any, session.sessionId);
+                                    if (e.key === 'Escape') handleCancelRename(e as any);
+                                }}
+                            />
+                            <button
+                                onClick={(e) => handleConfirmRename(e, session.sessionId)}
+                                className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded"
+                            >
+                                <Check size={14} />
+                            </button>
+                            <button
+                                onClick={handleCancelRename}
+                                className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                        {session.title || 'Untitled Session'}
+                    </h3>
+                )}
+
+                <div className={`mt-auto pt-4 flex items-center text-sm font-medium group-hover:underline ${session.hasCoverLetter ? 'text-sky-600 dark:text-sky-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {session.hasCoverLetter ? 'View / Download' : 'Generate Cover Letter'} <ArrowRight size={16} className="ml-1" />
+                </div>
+            </button>
+        );
+
         return (
             <div className="max-w-6xl mx-auto space-y-12">
                 <div className="space-y-2">
@@ -397,73 +576,45 @@ export const CoverLetterPage: React.FC = () => {
                             Your Cover Letters
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {withCL.map((session) => (
-                                <button
-                                    key={session.sessionId}
-                                    onClick={() => handleSwitchSession(session.sessionId)}
-                                    className="group p-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-sky-100 dark:border-sky-900/30 hover:border-sky-500 dark:hover:border-sky-500 hover:shadow-lg transition-all duration-300 text-left flex flex-col h-full relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 right-0 bg-sky-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">
-                                        READY
-                                    </div>
-                                    <div className="flex items-start justify-between w-full mb-4">
-                                        <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400">
-                                            <FileText size={24} />
-                                        </div>
-                                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                            {new Date(session.updatedAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
-                                        {session.title || 'Untitled Session'}
-                                    </h3>
-
-                                    <div className="mt-auto pt-4 flex items-center text-sm font-medium text-sky-600 dark:text-sky-400 group-hover:underline">
-                                        View / Download <ArrowRight size={16} className="ml-1" />
-                                    </div>
-                                </button>
-                            ))}
+                            {withCL.map(renderSessionCard)}
                         </div>
                     </div>
                 )}
 
                 {/* Section 2: Create New (Sessions without Cover Letters) */}
-                {withoutCL.length > 0 && (
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <RefreshCw size={20} className="text-slate-400" />
-                            Draft New Cover Letter
-                        </h2>
-                        <p className="text-sm text-slate-500">Select a session to generate a cover letter for the first time.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-80 hover:opacity-100 transition-opacity">
-                            {withoutCL.map((session) => (
-                                <button
-                                    key={session.sessionId}
-                                    onClick={() => handleSwitchSession(session.sessionId)}
-                                    className="group p-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-300 text-left flex flex-col h-full"
-                                >
-                                    <div className="flex items-start justify-between w-full mb-4">
-                                        <div className="p-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                            <FileText size={24} />
-                                        </div>
-                                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                            {new Date(session.updatedAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <RefreshCw size={20} className="text-slate-400" />
+                        Draft New Cover Letter
+                    </h2>
+                    <p className="text-sm text-slate-500">Start fresh or select a session to generate a cover letter.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Start Fresh Card */}
+                        <button
+                            onClick={handleNewCoverLetterSession}
+                            className="group p-6 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-left flex flex-col h-full relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Plus size={100} />
+                            </div>
+                            <div className="relative z-10 w-full">
+                                <div className="bg-white/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
+                                    <Plus size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">Start Fresh</h3>
+                                <p className="text-fuchsia-100 mb-4 text-sm">
+                                    Paste your resume and job description to generate a cover letter directly.
+                                </p>
+                                <span className="inline-flex items-center font-medium bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors text-sm">
+                                    Get Started <ArrowRight size={16} className="ml-2" />
+                                </span>
+                            </div>
+                        </button>
 
-                                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2 line-clamp-1">
-                                        {session.title || 'Untitled Session'}
-                                    </h3>
-
-                                    <div className="mt-auto pt-4 flex items-center text-sm font-medium text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200">
-                                        Refine & Generate <ArrowRight size={16} className="ml-1" />
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        {/* Existing Sessions */}
+                        {withoutCL.map(renderSessionCard)}
                     </div>
-                )}
+                </div>
             </div>
         );
     };
@@ -566,41 +717,44 @@ export const CoverLetterPage: React.FC = () => {
                                 <div>
                                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Cover Letter Generator</h1>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                        For: <span className="font-medium text-sky-600 dark:text-sky-400">{session?.title || 'Untitled Session'}</span>
+                                        For: <span className="font-medium text-sky-600 dark:text-sky-400">{session?.title || 'New Cover Letter'}</span>
                                     </p>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                                    <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-lg p-1 w-full sm:w-auto">
+                                {/* Only show source toggle and regenerate when session has optimizer analysis or cover letter */}
+                                {(session?.analysis?.optimiser || session?.analysis?.coverLetter) && (
+                                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                        <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-lg p-1 w-full sm:w-auto">
+                                            <button
+                                                onClick={() => setSource('optimized')}
+                                                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all ${source === 'optimized'
+                                                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                                    }`}
+                                            >
+                                                Optimized Resume
+                                            </button>
+                                            <button
+                                                onClick={() => setSource('original')}
+                                                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all ${source === 'original'
+                                                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                                    }`}
+                                            >
+                                                Original Resume
+                                            </button>
+                                        </div>
+
                                         <button
-                                            onClick={() => setSource('optimized')}
-                                            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all ${source === 'optimized'
-                                                ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
-                                                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                                }`}
+                                            onClick={handleGenerate}
+                                            disabled={isGenerating || !session?.jobDescriptionText}
+                                            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-lg font-medium shadow-md shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-95"
                                         >
-                                            Optimized Resume
-                                        </button>
-                                        <button
-                                            onClick={() => setSource('original')}
-                                            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-md transition-all ${source === 'original'
-                                                ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
-                                                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                                }`}
-                                        >
-                                            Original Resume
+                                            {isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <RefreshCw size={18} />}
+                                            {session?.analysis?.coverLetter ? 'Regenerate' : 'Generate'}
                                         </button>
                                     </div>
-
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={isGenerating || !session?.jobDescriptionText}
-                                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white rounded-lg font-medium shadow-md shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-95"
-                                    >
-                                        {isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-                                        {session?.analysis?.coverLetter ? 'Regenerate' : 'Generate'}
-                                    </button>
-                                </div>
+                                )}
                             </div>
 
 
@@ -733,11 +887,135 @@ export const CoverLetterPage: React.FC = () => {
                                 </>
                             ) : (
                                 !isGenerating && (
-                                    <div className="text-center py-20 bg-white/50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                                        <p className="text-slate-500 dark:text-slate-400 mb-2">No cover letter generated yet.</p>
-                                        <p className="text-sm text-slate-400 dark:text-slate-500">
-                                            Select a source and click Generate to create one.
-                                        </p>
+                                    /* Input Section for New Sessions */
+                                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+                                        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-100 dark:border-slate-700 pb-3">Your Details</h2>
+
+                                        {/* Resume Input */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <label htmlFor="resume" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                    Resume (paste or upload)
+                                                </label>
+                                                {currentUser && !isResumeFromProfile && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const text = await getUserProfileResume(currentUser.uid);
+                                                                if (text) {
+                                                                    setSession(prev => prev ? { ...prev, resumeText: text } : null);
+                                                                    setIsResumeFromProfile(true);
+                                                                }
+                                                            } catch (err) {
+                                                                setError("Failed to load profile resume");
+                                                            }
+                                                        }}
+                                                        className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-medium flex items-center gap-1 transition-colors"
+                                                        type="button"
+                                                    >
+                                                        Load from Profile
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {isResumeFromProfile ? (
+                                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                                            <Check size={20} />
+                                                            <span className="font-medium">Resume loaded from profile</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsResumeFromProfile(false);
+                                                                setSession(prev => prev ? { ...prev, resumeText: '' } : null);
+                                                            }}
+                                                            className="text-xs text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium transition-colors"
+                                                            type="button"
+                                                        >
+                                                            Clear & enter manually
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center gap-4 mb-2">
+                                                        <input
+                                                            id="resume-file"
+                                                            ref={fileInputRef}
+                                                            type="file"
+                                                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+                                                                setParseError(null);
+                                                                setIsParsing(true);
+                                                                try {
+                                                                    const text = await parseFile(file);
+                                                                    if (text && text.trim()) {
+                                                                        setSession(prev => prev ? { ...prev, resumeText: text } : null);
+                                                                    } else {
+                                                                        setParseError('No text could be extracted from the file.');
+                                                                    }
+                                                                } catch (err) {
+                                                                    setParseError(err instanceof Error ? err.message : String(err));
+                                                                } finally {
+                                                                    setIsParsing(false);
+                                                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                                                }
+                                                            }}
+                                                            disabled={isParsing || isGenerating}
+                                                            className="text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-50 dark:file:bg-sky-900/50 file:text-sky-700 dark:file:text-sky-300 hover:file:bg-sky-100 dark:hover:file:bg-sky-900 transition-colors"
+                                                        />
+                                                        {isParsing && <span className="text-sm text-slate-500 dark:text-slate-400 animate-pulse">Parsing file...</span>}
+                                                        {parseError && <span className="text-sm text-rose-500">{parseError}</span>}
+                                                    </div>
+
+                                                    <textarea
+                                                        id="resume"
+                                                        value={session?.resumeText || ''}
+                                                        onChange={(e) => setSession(prev => prev ? { ...prev, resumeText: e.target.value } : null)}
+                                                        placeholder="Paste the full text of your resume here..."
+                                                        className="w-full h-48 p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all resize-y placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                                                        disabled={isGenerating || isParsing}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Job Description Input */}
+                                        <div>
+                                            <label htmlFor="job-description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Paste the Job Description
+                                            </label>
+                                            <textarea
+                                                id="job-description"
+                                                value={session?.jobDescriptionText || ''}
+                                                onChange={(e) => setSession(prev => prev ? { ...prev, jobDescriptionText: e.target.value } : null)}
+                                                placeholder="Paste the full job description here..."
+                                                className="w-full h-48 p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all resize-y placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                                                disabled={isGenerating}
+                                            />
+                                        </div>
+
+                                        {/* Generate Button */}
+                                        <button
+                                            onClick={handleGenerate}
+                                            disabled={isGenerating || !session?.resumeText?.trim() || !session?.jobDescriptionText?.trim()}
+                                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-4 focus:ring-fuchsia-100 transition-all duration-300 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <RefreshCw className="animate-spin" size={20} />
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Mail size={20} />
+                                                    Generate Cover Letter
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 )
                             )}
@@ -752,6 +1030,52 @@ export const CoverLetterPage: React.FC = () => {
                     )}
                 </main>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmationId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 transform scale-100 transition-all">
+                        {(() => {
+                            const sessionToDelete = sessionsList.find(s => s.sessionId === deleteConfirmationId);
+                            const isOptimizerSession = sessionToDelete?.hasOptimizer;
+
+                            return (
+                                <>
+                                    <div className="flex items-center gap-4 mb-4 text-rose-600 dark:text-rose-500">
+                                        <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-full">
+                                            <AlertTriangle size={32} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                                            {isOptimizerSession ? 'Delete Cover Letter?' : 'Delete Session?'}
+                                        </h3>
+                                    </div>
+
+                                    <p className="text-slate-600 dark:text-slate-300 mb-6">
+                                        {isOptimizerSession
+                                            ? "Are you sure you want to delete this cover letter? The resume session will be preserved."
+                                            : "Are you sure you want to delete this session? This action cannot be undone."}
+                                    </p>
+
+                                    <div className="flex items-center justify-end gap-3">
+                                        <button
+                                            onClick={cancelDelete}
+                                            className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={executeDelete}
+                                            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all"
+                                        >
+                                            {isOptimizerSession ? 'Delete Cover Letter' : 'Delete Session'}
+                                        </button>
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

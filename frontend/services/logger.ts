@@ -58,25 +58,32 @@ export function subscribeLogger(cb: (entry: LogEntry) => void) {
  * Logs a structured entry to console and notifies all subscribers.
  * 
  * Design Decision: Dual output (console + subscribers)
- * - Console logs for developer debugging during development
+ * - Console logs only appear when VITE_DEBUG_LOGS is set to 'true'
  * - Subscribers enable UI components to display logs to end users
  * - Log levels map to appropriate console methods (log/warn/error)
  */
+const DEBUG_LOGS_ENABLED = typeof import.meta !== 'undefined' &&
+  (import.meta as any).env?.VITE_DEBUG_LOGS === 'true';
+
 export function log(entry: Omit<LogEntry, 'timestamp'>) {
   const payload: LogEntry = { ...entry, timestamp: new Date().toISOString() };
-  // Emit to console for quick debugging
-  switch (payload.level) {
-    case 'debug':
-    case 'info':
-      console.log('[ATS Buddy]', payload);
-      break;
-    case 'warn':
-      console.warn('[ATS Buddy]', payload);
-      break;
-    case 'error':
-      console.error('[ATS Buddy]', payload);
-      break;
+
+  // Only emit to console if debug logging is enabled
+  if (DEBUG_LOGS_ENABLED) {
+    switch (payload.level) {
+      case 'debug':
+      case 'info':
+        console.log('[ATS Buddy]', payload);
+        break;
+      case 'warn':
+        console.warn('[ATS Buddy]', payload);
+        break;
+      case 'error':
+        console.error('[ATS Buddy]', payload);
+        break;
+    }
   }
+
   subscribers.forEach((fn) => fn(payload));
 }
 

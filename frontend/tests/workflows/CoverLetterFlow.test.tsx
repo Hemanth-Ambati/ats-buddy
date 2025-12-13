@@ -92,15 +92,21 @@ describe('CoverLetterFlow', () => {
                 outputs: [
                     {
                         markdown: 'Hemanth Ambati\nambatihemanth00@gmail.com\n\nDear Hiring Manager, Professional content...',
-                        style: 'Professional & Direct'
+                        style: 'Professional & Direct',
+                        jobTitle: 'Software Engineer', // Added for title update test
+                        company: 'Tech Corp'
                     },
                     {
                         markdown: 'Hemanth Ambati\nambatihemanth00@gmail.com\n\nDear Hiring Manager, Achievement content...',
-                        style: 'Achievement Focused'
+                        style: 'Achievement Focused',
+                        jobTitle: 'Software Engineer',
+                        company: 'Tech Corp'
                     },
                     {
                         markdown: 'Hemanth Ambati\nambatihemanth00@gmail.com\n\nDear Hiring Manager, Passionate content...',
-                        style: 'Passionate & Cultural'
+                        style: 'Passionate & Cultural',
+                        jobTitle: 'Software Engineer',
+                        company: 'Tech Corp'
                     }
                 ]
             };
@@ -175,7 +181,8 @@ describe('CoverLetterFlow', () => {
             expect(screen.getByText('Cover Letter Generator')).toBeInTheDocument();
         });
 
-        const generateBtn = screen.getByText('Generate');
+        // New UI: The input section shows "Generate Cover Letter" button which is disabled
+        const generateBtn = screen.getByText('Generate Cover Letter');
         expect(generateBtn).toBeDisabled();
     });
 });

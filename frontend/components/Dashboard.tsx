@@ -118,6 +118,8 @@ export const Dashboard: React.FC = () => {
                         sessions={sessionsList}
                         onNewSession={handleNewSession}
                         onSelectSession={handleSwitchSession}
+                        onDeleteSession={handleDeleteSession}
+                        onRenameSession={handleRenameSession}
                         onCoverLetter={() => navigate('/cover-letter')}
                     />
                 </main>
